@@ -24,7 +24,7 @@ var DEFAULT={
     items:[{desc:"Website Design & Development",note:"Custom responsive build",qty:1,price:0},
            {desc:"Basic SEO Setup",note:"On-page SEO, schema, sitemap & Google indexing",qty:1,price:0}],
     bank:{name:"Arcen Digital",acc:"[Your account number]",bankName:"[Your bank]",branch:"[Branch code]"}},
-  agreement:{number:"AGR-0001",date:"",deposit:50,balance:50,revisions:3},
+  agreement:{number:"AGR-0001",date:"",deposit:50,balance:50,revisions:3,signed:false,signedDate:""},
   milestones:[
     {name:"Discovery",done:false,due:"",desc:"Requirements gathering and brand review"},
     {name:"Strategy",done:false,due:"",desc:"Sitemap, content plan and direction"},
@@ -523,7 +523,9 @@ function pgAgreement(){
   ];
   return '<div class="docwrap">'+
     '<div class="docbar no-print"><div><div class="h1" style="font-size:22px">Service Agreement</div><div class="sub" style="margin-top:4px">'+esc(a.number)+' · '+esc(a.date)+'</div></div>'+
-      '<div style="display:flex;gap:10px">'+
+      '<div style="display:flex;gap:10px;align-items:center">'+
+        (a.signed?'<span class="pill ok"><span class="d"></span>Signed '+esc(a.signedDate)+'</span>':
+          '<button class="btn sm" onclick="markSigned()">'+ic("check")+'Mark as signed</button>')+
         '<button class="btn sm" onclick="window.print()">'+ic("print")+'Print</button>'+
         '<button class="btn pri sm" onclick="exportPDF()">'+ic("download")+'Export PDF</button></div></div>'+
     '<div class="sheet" id="printSheet">'+
@@ -543,6 +545,14 @@ function pgAgreement(){
       '</div>'+
       '<div class="sfoot"><span>Arcen Digital · arcendigital.co.za</span><span>'+esc(a.number)+'</span></div>'+
     '</div></div>';
+}
+
+function markSigned(){
+  if(!confirm("Mark this agreement as signed by "+(db.client.company||db.client.name)+"?"))return;
+  db.agreement.signed=true;
+  db.agreement.signedDate=new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short",year:"numeric"});
+  logActivity("check","Agreement signed by "+(db.client.company||db.client.name));
+  persist();render();toast("Agreement marked as signed");
 }
 
 function pgMessages(){
