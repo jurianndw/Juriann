@@ -363,7 +363,9 @@ function onboardSave(){
   if(db.monthly.enabled&&moP>0)inv.items.push({desc:db.monthly.label+" (12 mo)",note:"Managed hosting + monthly support",qty:12,price:moP});
   /* generate message + save into client history */
   db.welcomeMsg=buildWelcomeMsg();
-  upsertClient();
+  var isNewClient=upsertClient();
+  if(isNewClient)logActivity("check","New client added: "+c.company);
+  logActivity("upload","Invoice "+inv.number+" created for "+c.company);
   persist();
   setHeaderIdentity();
   render();
@@ -375,8 +377,10 @@ function upsertClient(){
   var rec={company:c.company,contact:c.contact,name:c.name,phone:c.phone,email:c.email,address:c.address,
     project:db.project.name,value:t.grand,date:new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short",year:"numeric"}),
     status:db.invoice.status==="PAID"?"Completed":"Active"};
+  var isNew=i<0;
   if(i>=0){rec.id=db.clients[i].id;rec.date=db.clients[i].date;db.clients[i]=rec;}else{db.clients.unshift(rec);}
   cloudSaveClient(rec);
+  return isNew;
 }
 
 /* WhatsApp helpers */
@@ -640,6 +644,7 @@ function readLineItems(){
 function saveSettings(){
   var g=function(id){var e=el(id);return e?e.value:"";};
   var c=db.client,p=db.project,inv=db.invoice,a=db.agreement;
+  var oldStatus=p.status,oldInvStatus=inv.status;
   c.name=g("s_name")||c.name;c.company=g("s_company");c.contact=g("s_contact");c.email=g("s_email");c.phone=g("s_phone");c.address=g("s_address");
   p.name=g("s_pname");p.status=g("s_status");p.estCompletion=g("s_est");p.objective=g("s_obj");
   inv.bank.name=g("s_bizname")||inv.bank.name;
@@ -647,6 +652,8 @@ function saveSettings(){
   inv.discount=parseFloat(g("s_disc"))||0;inv.due=g("s_due")||inv.due;
   var items=readLineItems();if(items.length)inv.items=items;
   a.number=g("s_agrno");a.revisions=parseInt(g("s_rev"))||3;a.deposit=parseInt(g("s_dep"))||50;a.balance=parseInt(g("s_bal"))||50;
+  if(p.status!==oldStatus)logActivity("route","Project status changed to "+p.status);
+  if(inv.status==="PAID"&&oldInvStatus!=="PAID")logActivity("card","Payment received — invoice "+inv.number);
   setHeaderIdentity();
   upsertClient();
   persist();render();toast("Settings saved — documents updated");
