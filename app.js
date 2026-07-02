@@ -203,24 +203,27 @@ function pgDashboard(){
         '<div><div class="cardlabel">Status</div><span class="pill acc" style="margin-top:2px"><span class="d"></span>'+esc(p.status)+'</span></div>'+
       '</div>'+
     '</div>'+
-    '<div class="grid g4" style="margin-bottom:16px">'+
+    '<div class="grid g3" style="margin-bottom:16px">'+
       statCard("Current stage",stage?stage.name:"Complete",ic("route"),"Due "+(stage?stage.due:"—"))+
-      statCard("Outstanding tasks","1",ic("clipboard"),"Awaiting review")+
       statCard("Invoice status",inv.status==="PAID"?"Paid":"Unpaid",ic("card"),money(projectTotal())+" total")+
-      statCard("Unread messages","1",ic("msgico"),"From Arcen Digital")+
+      statCard("Messages sent",String(db.messages.length),ic("msgico"),db.messages.length?("Last sent "+db.messages[db.messages.length-1].time):"No messages yet")+
     '</div>'+
-    '<div class="card pad"><div class="rowbetween"><div class="sectitle">Recent activity</div></div>'+
+    '<div class="card pad" style="margin-bottom:16px"><div class="rowbetween"><div class="sectitle">Recent activity</div></div>'+
       (db.activity.length?db.activity.map(actRow).join(""):'<div class="sub" style="font-size:12.5px;padding:6px 0">No activity yet.</div>')+'</div>'+
-    '<div class="grid g2 mt16">'+
-      '<div class="card pad"><div class="sectitle" style="margin-bottom:14px">Upcoming meeting</div>'+
-        '<div style="display:flex;gap:14px;align-items:center">'+
-          '<div style="width:52px;height:52px;border-radius:14px;background:var(--acc-soft);display:flex;flex-direction:column;align-items:center;justify-content:center">'+
-          '<span style="font-size:10px;color:var(--acc);font-weight:700;text-transform:uppercase">Jul</span><span style="font-size:19px;font-weight:700;color:var(--acc);line-height:1">09</span></div>'+
-          '<div><div style="font-size:14px;font-weight:600">Design review call</div><div style="font-size:12.5px;color:var(--grey);margin-top:2px">14:00 · Google Meet</div></div>'+
-          '<button class="btn sm" style="margin-left:auto" onclick="toast(\'No meeting link set yet — add one when you schedule the call\')">Join</button></div></div>'+
-      '<div class="card pad"><div class="sectitle" style="margin-bottom:14px">Project health</div>'+
-        healthRow("Budget","Within scope",100)+healthRow("Engagement","Excellent",88)+'</div>'+
+    '<div class="card pad"><div class="sectitle" style="margin-bottom:8px">Milestones</div>'+
+      db.milestones.map(mileRow).join("")+
     '</div>';
+}
+function mileRow(m,idx){
+  return '<div class="mile" onclick="toggleMilestone('+idx+')"><div class="mc '+(m.done?"done":"todo")+'">'+(m.done?ic("check"):'<i></i>')+'</div>'+
+    '<div class="mm"><div class="mt">'+esc(m.name)+'</div><div class="md">'+esc(m.desc)+'</div></div>'+
+    '<div class="mr">'+(m.done?"Done":"Due "+esc(m.due))+'</div></div>';
+}
+function toggleMilestone(idx){
+  var m=db.milestones[idx];if(!m)return;
+  m.done=!m.done;
+  if(m.done)logActivity("check","Milestone complete: "+m.name);
+  persist();render();
 }
 function statCard(label,val,icon,meta){
   return '<div class="card statcard"><div class="cardlabel">'+label+'</div>'+
@@ -228,11 +231,6 @@ function statCard(label,val,icon,meta){
     '<div style="width:34px;height:34px;border-radius:11px;background:var(--glass-2);border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;opacity:.8">'+
     '<span style="display:flex">'+icon.replace('viewBox','style="width:16px;height:16px;stroke:var(--grey)" viewBox')+'</span></div></div>'+
     '<div class="meta">'+esc(meta)+'</div></div>';
-}
-function healthRow(label,val,pct){
-  return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:7px">'+
-    '<span style="font-size:13px;font-weight:500">'+label+'</span><span style="font-size:12px;color:var(--ok);font-weight:600">'+val+'</span></div>'+
-    '<div class="pbar"><i style="width:'+pct+'%"></i></div></div>';
 }
 function actRow(a){
   return '<div class="act"><div class="ai">'+ic(a.icon)+'</div>'+
