@@ -17,6 +17,7 @@ Key consequence worth remembering: the Messages feature has no real inbound chan
 - Messages page has no real inbound channel — it's an outbound-only log of what you sent, not a live two-way chat. If a real chat backend is ever added, revisit the "Messages sent" stat and consider real unread tracking then.
 - Agreement "signing" is a self-reported client-side toggle (`markSigned()`), not real e-signature capture (no signature image/legal audit trail). Sufficient for this tool's purpose (personal record-keeping); flag to the user if legal enforceability ever becomes a requirement.
 - `.claude/settings.local.json` may accumulate tool-permission grants during subagent-driven-development runs as harmless diff noise (flagged by a task reviewer during the 2026-07-03 work) — not a functional issue, just noise to be aware of when reviewing diffs.
+- `restore()`'s migration (`app.js`, fills missing keys from `DEFAULT`) only backfills missing *top-level* keys on `db`, not nested fields on objects that already exist. When `db.agreement.signed`/`signedDate` were added (2026-07-03), pre-existing localStorage saves keep `db.agreement` as-is and never get those two fields filled in — they simply read as `undefined` forever unless `markSigned()` is clicked. Harmless today because every reader treats `undefined` as falsy/empty, but the next person adding a nested field to an existing `DEFAULT` object should either follow the same undefined-tolerant-read pattern or extend the migration to be recursive.
 
 ## Design preferences observed
 

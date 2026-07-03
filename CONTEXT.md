@@ -18,15 +18,17 @@ Progress ledger (authoritative on resume): `.superpowers/sdd/progress.md`
 - Task 3 (commit `480d907`): real event logging wired into `onboardSave` (new client, invoice created) and `saveSettings` (project status changed, payment received). `upsertClient()` now returns whether the client was new. Reviewed clean.
 - Task 4 (commit `38b50be`): real agreement-signing state (`db.agreement.signed`/`signedDate`, "Mark as signed" button, `markSigned()`). Reviewed clean.
 
+## Status: plan complete
+
+All 5 tasks implemented, individually reviewed (all Approved, no Critical/Important issues), and verified end-to-end with a live interactive browser smoke test by the controller (milestone toggle → activity → notification chain, new-client/invoice/payment/status-change logging with dedup guards confirmed, real message send with no fake reply/badge, agreement sign toggle, zero leftover fake strings across all 7 pages, zero console errors). Final whole-branch review: **ready to merge**, no Critical/Important issues (two Minor notes, both already tolerated gracefully — see MEMORY.md).
+
 ## Next steps
 
-1. Task 5: remove the fake Messages auto-reply (`sendMsg`'s `setTimeout` canned reply) and the dead hardcoded "1" nav badge on Messages; run the full end-to-end smoke pass across every page.
-2. Final whole-branch code review (most capable model) covering all 5 tasks together.
-3. `superpowers:finishing-a-development-branch` to decide how this lands (this repo has no remote — likely just "done on master," confirm with user).
+`superpowers:finishing-a-development-branch` — decide how this lands (this repo has no remote and everything happened directly on `master`; likely just "done," confirm with user).
 
 ## Open questions
 
-None currently blocking. One deviation from the original spec was already flagged and accepted by the user: the spec's planned `read`-flag/unread-message-count mechanism was dropped in favor of a real "Messages sent" count, because removing the fake auto-reply (also approved) makes incoming messages — and therefore any unread count — permanently impossible to generate. See MEMORY.md.
+None. One deviation from the original spec was flagged and accepted by the user: the spec's planned `read`-flag/unread-message-count mechanism was dropped in favor of a real "Messages sent" count, because removing the fake auto-reply (also approved) makes incoming messages — and therefore any unread count — permanently impossible to generate. See MEMORY.md.
 
 ## Relevant files
 
