@@ -191,12 +191,17 @@ function pgDashboard(){
   var done=db.milestones.filter(function(m){return m.done;}).length;
   var pct=total?Math.round(done/total*100):0;
   var nextIdx=db.milestones.findIndex(function(m){return !m.done;});
+  var nextMile=nextIdx>=0?db.milestones[nextIdx]:null;
   var title=c.name?esc(c.name):"Welcome back";
   var lede;
   if(!c.name)lede="Add your first client and their invoice, agreement, and welcome message are generated for you.";
-  else if(done===0)lede="Everything's ready. Check off milestones below as the work moves forward.";
+  else if(inv.status!=="PAID")lede="Invoice "+esc(inv.number)+" for "+esc(c.company||c.name)+" is still unpaid.";
+  else if(nextMile)lede="Next up: "+esc(nextMile.name)+".";
   else if(pct===100)lede="Every milestone is complete — nicely done.";
   else lede="Here's where things stand today.";
+
+  var unpaid=[];
+  db.clients.forEach(function(x,i){if(x.status!=="Completed")unpaid.push({x:x,i:i});});
 
   return '<div class="dash">'+
     '<div class="dash-hero">'+
@@ -216,6 +221,9 @@ function pgDashboard(){
       '</div>'+
     '</div>'+
 
+    (db.clients.length?attentionSec(unpaid):"")+
+    quickActionsSec()+
+
     '<div class="dash-stats">'+
       dashStat("Invoice",inv.status==="PAID"?"Paid":"Unpaid",money(projectTotal())+" total")+
       dashStat("Messages",String(db.messages.length),db.messages.length?("Last "+esc(db.messages[db.messages.length-1].time)):"None sent yet")+
@@ -232,6 +240,36 @@ function pgDashboard(){
       (db.activity.length?'<div>'+db.activity.map(actRow).join("")+'</div>'
         :'<div class="dash-empty">Nothing yet. Saving a client, sending an invoice, or completing a milestone shows up here.</div>')+
     '</div></div>';
+}
+function attentionSec(unpaid){
+  var shown=unpaid.slice(0,4);
+  var extra=unpaid.length-shown.length;
+  return '<div class="dash-sec">'+
+    '<div class="dash-sec-head"><div class="dash-sec-title">Needs attention</div>'+
+      (unpaid.length?'<div class="dash-sec-note">'+unpaid.length+' outstanding</div>':"")+'</div>'+
+    (shown.length?'<div>'+shown.map(attnRow).join("")+'</div>'+
+        (extra>0?'<div class="dash-more" onclick="goPage(\'clients\')">+'+extra+' more in Past Clients</div>':"")
+      :'<div class="dash-empty">Nothing outstanding — every client is settled up.</div>')+
+  '</div>';
+}
+function attnRow(row){
+  var x=row.x,i=row.i;
+  return '<div class="dash-attn" onclick="loadClient('+i+')">'+
+    '<div class="uava">'+initials(x.company)+'</div>'+
+    '<div style="flex:1;min-width:0"><div class="nm">'+esc(x.company)+'</div><div class="ds">'+esc(x.project)+' · '+money(x.value)+'</div></div>'+
+    '<button class="iconbtn" title="Message '+esc(x.company)+'" onclick="event.stopPropagation();waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')">'+WA_LOGO+'</button>'+
+  '</div>';
+}
+function quickActionsSec(){
+  return '<div class="dash-quick">'+
+    qaBtn("sparkle","New client","onboard")+
+    qaBtn("card","View invoice","invoice")+
+    qaBtn("file","Agreement","agreement")+
+    qaBtn("chat","Messages","messages")+
+  '</div>';
+}
+function qaBtn(icon,label,page){
+  return '<button class="dash-qa" onclick="goPage(\''+page+'\')">'+ic(icon)+'<span>'+esc(label)+'</span></button>';
 }
 function dashStat(k,v,m){
   return '<div class="dash-stat"><div class="k">'+esc(k)+'</div><div class="v">'+v+'</div><div class="m">'+esc(m)+'</div></div>';
