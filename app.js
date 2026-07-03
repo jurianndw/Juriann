@@ -135,7 +135,7 @@ function ring(pct,size){
   return '<div class="ring" style="width:'+size+'px;height:'+size+'px">'+
     '<svg width="'+size+'" height="'+size+'"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="1" y2="1">'+
     '<stop offset="0" stop-color="#4C7EFF"/><stop offset="1" stop-color="#6D5CE7"/></linearGradient></defs>'+
-    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="8"/>'+
+    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--ring-track)" stroke-width="8"/>'+
     '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="url(#'+id+')" stroke-width="8" '+
     'stroke-linecap="round" stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+c.toFixed(1)+'" '+
     'style="transition:stroke-dashoffset 1.1s cubic-bezier(.22,.61,.36,1)" data-off="'+off.toFixed(1)+'"/></svg>'+
@@ -180,12 +180,8 @@ function render(){
   else if(current==="messages")html=pgMessages();
   else if(current==="settings")html=pgSettings();
   s.innerHTML='<div class="page active">'+html+'</div>';
-  animateRings();animateBars();
+  animateRings();
   if(current==="messages"){var th=document.querySelector(".thread");if(th)th.scrollTop=th.scrollHeight;}
-}
-function animateBars(){
-  var bars=document.querySelectorAll(".dash-track i[data-w]");
-  setTimeout(function(){bars.forEach(function(b){b.style.width=b.getAttribute("data-w")+"%";});},60);
 }
 
 /* ---------- pages ---------- */
@@ -195,6 +191,7 @@ function pgDashboard(){
   var done=db.milestones.filter(function(m){return m.done;}).length;
   var pct=total?Math.round(done/total*100):0;
   var stage=db.milestones.filter(function(m){return !m.done;})[0];
+  var nextIdx=db.milestones.findIndex(function(m){return !m.done;});
   var title=c.name?esc(c.name):"Welcome back";
   var lede;
   if(!c.name)lede="Add your first client and their invoice, agreement, and welcome message are generated for you.";
@@ -209,17 +206,15 @@ function pgDashboard(){
       '<div class="dash-lede">'+lede+'</div>'+
     '</div>'+
 
-    '<div class="dash-focus">'+
-      '<div class="prj">'+esc(p.name)+'</div>'+
-      '<div class="row">'+
-        '<div class="dash-pct">'+pct+'<small>%</small></div>'+
-        '<div class="meta">'+
-          '<span class="pill '+(pct===100?"ok":"acc")+'"><span class="d"></span>'+esc(p.status)+'</span>'+
-          '<span>'+done+' of '+total+' milestones</span>'+
-          (p.estCompletion?'<span>Est. '+esc(p.estCompletion)+'</span>':"")+
-        '</div>'+
+    '<div class="dash-focal">'+
+      '<div class="dash-ring">'+ring(pct,172)+'</div>'+
+      '<div class="dash-facts">'+
+        '<div class="dash-eyebrow">Current project</div>'+
+        '<div class="dash-facts-title">'+esc(p.name)+'</div>'+
+        '<div class="dash-fact"><span>Status</span><span class="pill '+(pct===100?"ok":"acc")+'"><span class="d"></span>'+esc(p.status)+'</span></div>'+
+        '<div class="dash-fact"><span>Milestones</span><b>'+done+' of '+total+'</b></div>'+
+        '<div class="dash-fact"><span>Est. completion</span><b>'+(p.estCompletion?esc(p.estCompletion):"—")+'</b></div>'+
       '</div>'+
-      '<div class="dash-track"><i data-w="'+pct+'"></i></div>'+
     '</div>'+
 
     '<div class="dash-stats">'+
@@ -231,7 +226,7 @@ function pgDashboard(){
     '<div class="dash-sec">'+
       '<div class="dash-sec-head"><div class="dash-sec-title">Milestones</div>'+
         '<div class="dash-sec-note">'+done+' / '+total+' complete</div></div>'+
-      '<div>'+db.milestones.map(mileRow).join("")+'</div>'+
+      '<div>'+db.milestones.map(function(m,idx){return mileRow(m,idx,idx===nextIdx);}).join("")+'</div>'+
     '</div>'+
 
     '<div class="dash-sec">'+
@@ -243,11 +238,12 @@ function pgDashboard(){
 function dashStat(k,v,m){
   return '<div class="dash-stat"><div class="k">'+esc(k)+'</div><div class="v">'+v+'</div><div class="m">'+esc(m)+'</div></div>';
 }
-function mileRow(m,idx){
-  return '<div class="dash-mile'+(m.done?" done":"")+'" onclick="toggleMilestone('+idx+')">'+
+function mileRow(m,idx,cur){
+  var right=m.done?"Done":(cur?"Up next":(m.due?"Due "+esc(m.due):"—"));
+  return '<div class="dash-mile'+(m.done?" done":"")+(cur?" current":"")+'" onclick="toggleMilestone('+idx+')">'+
     '<div class="dash-check">'+(m.done?ic("check"):"")+'</div>'+
     '<div style="flex:1;min-width:0"><div class="nm">'+esc(m.name)+'</div><div class="ds">'+esc(m.desc)+'</div></div>'+
-    '<div class="due">'+(m.done?"Done":(m.due?"Due "+esc(m.due):"—"))+'</div></div>';
+    '<div class="due">'+right+'</div></div>';
 }
 function toggleMilestone(idx){
   var m=db.milestones[idx];if(!m)return;
