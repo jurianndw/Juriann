@@ -15,6 +15,7 @@ var SUPA_KEY="sb_publishable_iB_x52O4aGTYryy0WPmyHQ_NDeXyIjd";
 /* ---------- default data ---------- */
 var DEFAULT={
   theme:"dark",
+  sidebarCollapsed:false,
   client:{name:"",company:"",contact:"",email:"",phone:"",address:""},
   project:{name:"Website Project",objective:"",status:"Not started",estCompletion:"",manager:"Arcen Digital",progress:0,
     audience:[],
@@ -152,7 +153,7 @@ function buildNav(){
   el("nav").innerHTML=NAV_GROUPS.map(function(g){
     var items=g[1].map(function(id){
       var p=byId[id];if(!p)return "";
-      return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" onclick="goPage(\''+id+'\')">'+
+      return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" title="'+esc(p[1])+'" onclick="goPage(\''+id+'\')">'+
         ic(p[2])+'<span>'+p[1]+'</span></button>';
     }).join("");
     return '<div class="navgroup"><div class="navlabel">'+g[0]+'</div>'+items+'</div>';
@@ -628,7 +629,7 @@ function pgSettings(){
         setField("s_agrno","Agreement number",a.number)+setField("s_rev","Revision rounds",a.revisions,"number")+
         setField("s_dep","Deposit %",a.deposit,"number")+setField("s_bal","Balance %",a.balance,"number")+
       '</div></div>'+
-    '<div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" onclick="resetAll()">'+ic("trash")+'Reset portal (clear all clients &amp; data)</button>'+
+    '<div class="floatbar"><button class="btn" onclick="resetAll()">'+ic("trash")+'Reset portal (clear all clients &amp; data)</button>'+
       '<button class="btn pri" onclick="saveSettings()">'+ic("check")+'Save changes</button></div>';
 }
 function setField(id,label,val,type){
@@ -702,6 +703,8 @@ function exportPDF(){
 function applyTheme(){document.documentElement.setAttribute("data-theme",db.theme);
   el("themeIco").innerHTML=db.theme==="dark"?ICONS.sun||'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>':'<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.9" y1="4.9" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.1" y2="19.1"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.9" y1="19.1" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.1" y2="4.9"/>';}
 function toggleTheme(){db.theme=db.theme==="dark"?"light":"dark";persist();applyTheme();}
+function applySidebar(){document.querySelector(".app").classList.toggle("sidebar-collapsed",!!db.sidebarCollapsed);}
+function toggleSidebar(){db.sidebarCollapsed=!db.sidebarCollapsed;persist();applySidebar();}
 
 function toast(msg){
   var wrap=el("toasts");var t=document.createElement("div");t.className="toast";
@@ -728,7 +731,7 @@ function initSearch(){
 /* ---------- boot ---------- */
 function bootUI(){
   setHeaderIdentity();
-  applyTheme();buildNav();render();
+  applyTheme();applySidebar();buildNav();render();
 }
 function setHeaderIdentity(){
   var c=db.client;
