@@ -9,8 +9,9 @@
   --ok:#30D158; --ok-soft:rgba(48,209,88,.14);
   --warn:#FF9F0A; --warn-soft:rgba(255,159,10,.14);
   --dng:#FF453A;
-  --r-lg:22px; --r-md:16px; --r-sm:12px;
+  --r-lg:26px; --r-md:16px; --r-sm:12px;
   --sh:0 10px 40px rgba(0,0,0,.5); --sh-sm:0 4px 20px rgba(0,0,0,.35);
+  --sh-card:0 2px 14px rgba(0,0,0,.22); --sh-card-hover:0 22px 50px rgba(0,0,0,.4);
   --ease:cubic-bezier(.22,.61,.36,1);
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --serif:"Fraunces",Georgia,serif;
@@ -124,9 +125,13 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .pagehead{margin-bottom:28px}
 
 /* ============ CARDS ============ */
-.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r-lg);
-  backdrop-filter:blur(14px);box-shadow:var(--sh-sm)}
-.card.pad{padding:24px}
+.card{background:var(--glass);border:1px solid var(--hair);border-radius:var(--r-lg);
+  backdrop-filter:blur(14px);box-shadow:var(--sh-card);
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease)}
+.card:hover{transform:translateY(-3px);box-shadow:var(--sh-card-hover);border-color:var(--border-2)}
+.card.pad{padding:30px}
+.card+.card{margin-top:20px}
+@media(prefers-reduced-motion:reduce){.card{transition:box-shadow .2s}.card:hover{transform:none}}
 .grid{display:grid;gap:16px}
 .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
@@ -440,6 +445,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   --acc:#7A5A34;--acc-2:#5C4526;--acc-soft:rgba(122,90,52,.12);--on-acc:#FBF3E6;
   --grad:linear-gradient(135deg,#8C6A3F 0%,#5C4526 100%);
   --sh:0 10px 40px rgba(0,0,0,.1);--sh-sm:0 3px 16px rgba(0,0,0,.06);
+  --sh-card:0 1px 3px rgba(0,0,0,.05); --sh-card-hover:0 20px 44px rgba(0,0,0,.12);
 }
 [data-theme="light"] body::before{background:radial-gradient(900px 500px at 78% -8%,rgba(122,90,52,.06),transparent 60%)}
 

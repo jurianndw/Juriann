@@ -483,18 +483,22 @@ function pgClients(){
   return head+'<div id="clientList">'+list.map(clientRow).join("")+'</div>';
 }
 function clientRow(x,i){
-  return '<div class="card pad clientrow" data-name="'+esc((x.company+" "+x.contact).toLowerCase())+'" style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap">'+
-    '<div class="uava" style="width:42px;height:42px;font-size:14px">'+initials(x.company)+'</div>'+
-    '<div style="flex:1;min-width:180px"><div style="font-size:14.5px;font-weight:600">'+esc(x.company)+'</div>'+
-      '<div style="font-size:12.5px;color:var(--grey);margin-top:2px">'+esc(x.contact)+' · '+esc(x.phone||"no number")+'</div></div>'+
-    '<div style="min-width:130px"><div class="cardlabel">Project</div><div style="font-size:12.5px;margin-top:2px">'+esc(x.project)+'</div></div>'+
-    '<div style="min-width:100px"><div class="cardlabel">Value</div><div style="font-size:13.5px;font-weight:600;margin-top:2px">'+money(x.value)+'</div></div>'+
-    '<div style="min-width:90px"><div class="cardlabel">Since</div><div style="font-size:12.5px;margin-top:2px">'+esc(x.date)+'</div></div>'+
-    '<span class="pill '+(x.status==="Completed"?"ok":"acc")+'"><span class="d"></span>'+esc(x.status)+'</span>'+
-    '<div style="display:flex;gap:8px">'+
-      '<button class="iconbtn" title="WhatsApp" onclick="waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')" style="color:#25D366">'+WA_LOGO+'</button>'+
-      '<button class="iconbtn" title="Load into portal" onclick="loadClient('+i+')">'+ic("upload")+'</button>'+
-      '<button class="iconbtn" title="Remove" onclick="removeClient('+i+')">'+ic("trash")+'</button>'+
+  return '<div class="card pad clientrow" data-name="'+esc((x.company+" "+x.contact).toLowerCase())+'">'+
+    '<div style="display:flex;align-items:center;gap:16px">'+
+      '<div class="uava" style="width:42px;height:42px;font-size:14px;flex:none">'+initials(x.company)+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+          '<div style="font-size:15.5px;font-weight:600">'+esc(x.company)+'</div>'+
+          '<span class="pill '+(x.status==="Completed"?"ok":"acc")+'"><span class="d"></span>'+esc(x.status)+'</span>'+
+        '</div>'+
+        '<div style="font-size:12.5px;color:var(--grey-2);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+
+          esc(x.contact)+' · '+esc(x.project)+' · '+money(x.value)+' · since '+esc(x.date)+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;flex:none">'+
+        '<button class="iconbtn" title="WhatsApp" onclick="waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')" style="color:#25D366">'+WA_LOGO+'</button>'+
+        '<button class="iconbtn" title="Load into portal" onclick="loadClient('+i+')">'+ic("upload")+'</button>'+
+        '<button class="iconbtn" title="Remove" onclick="removeClient('+i+')">'+ic("trash")+'</button>'+
+      '</div>'+
     '</div></div>';
 }
 function filterClients(q){
