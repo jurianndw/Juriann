@@ -99,10 +99,6 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
 
-.statcard{padding:20px 22px}
-.statcard .cardlabel{margin-bottom:12px}
-.statcard .val{font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1}
-.statcard .meta{font-size:12.5px;color:var(--grey);margin-top:8px;display:flex;align-items:center;gap:6px}
 
 /* ============ BUTTONS ============ */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;
@@ -223,28 +219,58 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .sigrow .sig .line{border-bottom:1.5px solid #111;height:44px;margin-bottom:8px}
 .sigrow .sig .cap{font-size:11px;color:#8a8a92;text-transform:uppercase;letter-spacing:.06em}
 
-/* ============ MILESTONES ============ */
-.mile{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--hair);cursor:pointer;transition:.15s}
-.mile:hover{padding-left:6px}
-.mile:last-child{border-bottom:none}
-.mile .mc{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;margin-top:1px}
-.mile .mc.done{background:var(--grad)}
-.mile .mc.done svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.mile .mc.todo{border:1.8px solid var(--border);background:var(--glass)}
-.mile .mc.todo i{width:7px;height:7px;border-radius:50%;background:var(--grey-3)}
-.mile .mm{flex:1}
-.mile .mt{font-size:14px;font-weight:600}
-.mile .md{font-size:12.5px;color:var(--grey);margin-top:2px}
-.mile .mr{font-size:12px;color:var(--grey-2);white-space:nowrap}
+/* ============ DASHBOARD ============ */
+.dash{max-width:920px;margin:0 auto}
+.dash-hero{padding:16px 0 40px}
+.dash-eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--grey-2);font-weight:600}
+.dash-title{font-size:46px;font-weight:500;letter-spacing:-.035em;line-height:1.05;margin-top:14px}
+.dash-lede{color:var(--grey);font-size:16.5px;line-height:1.55;margin-top:16px;max-width:54ch}
 
-/* activity */
-.act{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--hair)}
-.act:last-child{border-bottom:none}
-.act .ai{width:32px;height:32px;border-radius:10px;background:var(--glass-2);border:1px solid var(--hair);
-  display:flex;align-items:center;justify-content:center;flex:none}
-.act .ai svg{width:15px;height:15px;stroke:var(--acc);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.act .at{font-size:13px;font-weight:500}
-.act .aw{font-size:11.5px;color:var(--grey-2);margin-top:1px}
+.dash-focus{padding:2px 0 40px;border-bottom:1px solid var(--hair)}
+.dash-focus .prj{font-size:14px;color:var(--grey);font-weight:500;letter-spacing:.01em}
+.dash-focus .row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-top:12px}
+.dash-pct{font-size:66px;font-weight:500;letter-spacing:-.045em;line-height:.85;font-variant-numeric:tabular-nums}
+.dash-pct small{font-size:26px;color:var(--grey-2);font-weight:500;margin-left:1px}
+.dash-focus .meta{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--grey);padding-bottom:5px}
+.dash-track{height:6px;border-radius:6px;background:var(--glass-2);overflow:hidden;margin-top:26px}
+.dash-track i{display:block;height:100%;border-radius:6px;background:var(--grad);width:0;transition:width 1.1s var(--ease)}
+
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:36px;
+  border:1px solid var(--hair);border-radius:var(--r-lg);background:var(--glass);overflow:hidden}
+.dash-stat{padding:22px 24px}
+.dash-stat+.dash-stat{border-left:1px solid var(--hair)}
+.dash-stat .k{font-size:12px;color:var(--grey-2);font-weight:600;letter-spacing:.02em}
+.dash-stat .v{font-size:25px;font-weight:500;letter-spacing:-.02em;margin-top:11px;font-variant-numeric:tabular-nums}
+.dash-stat .m{font-size:12.5px;color:var(--grey-2);margin-top:6px}
+@media(max-width:760px){.dash-stats{grid-template-columns:1fr}
+  .dash-stat+.dash-stat{border-left:none;border-top:1px solid var(--hair)}}
+
+.dash-sec{margin-top:50px}
+.dash-sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.dash-sec-title{font-size:19px;font-weight:500;letter-spacing:-.02em}
+.dash-sec-note{font-size:13px;color:var(--grey-2);font-variant-numeric:tabular-nums}
+
+.dash-mile{display:flex;align-items:center;gap:16px;padding:17px 4px;border-bottom:1px solid var(--hair);
+  cursor:pointer;transition:padding .18s var(--ease)}
+.dash-mile:last-child{border-bottom:none}
+.dash-mile:hover{padding-left:10px}
+.dash-check{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  border:1.6px solid var(--grey-3);transition:.2s var(--ease)}
+.dash-check svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.dash-mile.done .dash-check{background:var(--acc);border-color:var(--acc)}
+.dash-mile .nm{font-size:15px;font-weight:500}
+.dash-mile .ds{font-size:12.5px;color:var(--grey-2);margin-top:3px}
+.dash-mile.done .nm{color:var(--grey)}
+.dash-mile .due{font-size:12.5px;color:var(--grey-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.dash-act{display:flex;gap:14px;padding:15px 4px;border-bottom:1px solid var(--hair)}
+.dash-act:last-child{border-bottom:none}
+.dash-act .ico{width:30px;height:30px;border-radius:9px;flex:none;background:var(--glass-2);
+  display:flex;align-items:center;justify-content:center}
+.dash-act .ico svg{width:15px;height:15px;stroke:var(--grey);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.dash-act .tx{font-size:14px;line-height:1.4}
+.dash-act .tm{font-size:12px;color:var(--grey-2);margin-top:3px;font-variant-numeric:tabular-nums}
+.dash-empty{color:var(--grey-2);font-size:14px;line-height:1.6;padding:18px 4px;max-width:46ch}
 
 /* ============ INTAKE ============ */
 .intakesec{padding:22px 24px;margin-bottom:14px}

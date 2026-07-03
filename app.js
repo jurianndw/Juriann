@@ -180,42 +180,74 @@ function render(){
   else if(current==="messages")html=pgMessages();
   else if(current==="settings")html=pgSettings();
   s.innerHTML='<div class="page active">'+html+'</div>';
-  animateRings();
+  animateRings();animateBars();
   if(current==="messages"){var th=document.querySelector(".thread");if(th)th.scrollTop=th.scrollHeight;}
+}
+function animateBars(){
+  var bars=document.querySelectorAll(".dash-track i[data-w]");
+  setTimeout(function(){bars.forEach(function(b){b.style.width=b.getAttribute("data-w")+"%";});},60);
 }
 
 /* ---------- pages ---------- */
 function pgDashboard(){
-  var p=db.project,inv=db.invoice;
+  var c=db.client,p=db.project,inv=db.invoice;
+  var total=db.milestones.length;
   var done=db.milestones.filter(function(m){return m.done;}).length;
+  var pct=total?Math.round(done/total*100):0;
   var stage=db.milestones.filter(function(m){return !m.done;})[0];
-  return '<div class="pagehead"><div class="eyebrow">'+greeting()+'</div>'+
-    '<div class="h1" style="margin-top:8px">'+esc(db.client.name)+' 👋</div>'+
-    '<div class="sub">Here'+"'"+'s where your project stands today.</div></div>'+
-    '<div class="card pad" style="margin-bottom:16px">'+
-      '<div class="eyebrow">Current project</div>'+
-      '<div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:8px 0 4px">'+esc(p.name)+'</div>'+
-      '<div style="display:flex;gap:28px;margin-top:14px;flex-wrap:wrap">'+
-        '<div><div class="cardlabel">Est. completion</div><b style="font-size:15px">'+esc(p.estCompletion)+'</b></div>'+
-        '<div><div class="cardlabel">Milestones</div><b style="font-size:15px">'+done+' / '+db.milestones.length+'</b></div>'+
-        '<div><div class="cardlabel">Status</div><span class="pill acc" style="margin-top:2px"><span class="d"></span>'+esc(p.status)+'</span></div>'+
+  var title=c.name?esc(c.name):"Welcome back";
+  var lede;
+  if(!c.name)lede="Add your first client and their invoice, agreement, and welcome message are generated for you.";
+  else if(done===0)lede="Everything's ready. Check off milestones below as the work moves forward.";
+  else if(pct===100)lede="Every milestone is complete — nicely done.";
+  else lede="Here's where things stand today.";
+
+  return '<div class="dash">'+
+    '<div class="dash-hero">'+
+      '<div class="dash-eyebrow">'+greeting()+'</div>'+
+      '<div class="dash-title">'+title+'</div>'+
+      '<div class="dash-lede">'+lede+'</div>'+
+    '</div>'+
+
+    '<div class="dash-focus">'+
+      '<div class="prj">'+esc(p.name)+'</div>'+
+      '<div class="row">'+
+        '<div class="dash-pct">'+pct+'<small>%</small></div>'+
+        '<div class="meta">'+
+          '<span class="pill '+(pct===100?"ok":"acc")+'"><span class="d"></span>'+esc(p.status)+'</span>'+
+          '<span>'+done+' of '+total+' milestones</span>'+
+          (p.estCompletion?'<span>Est. '+esc(p.estCompletion)+'</span>':"")+
+        '</div>'+
       '</div>'+
+      '<div class="dash-track"><i data-w="'+pct+'"></i></div>'+
     '</div>'+
-    '<div class="grid g3" style="margin-bottom:16px">'+
-      statCard("Current stage",stage?stage.name:"Complete",ic("route"),"Due "+(stage?stage.due:"—"))+
-      statCard("Invoice status",inv.status==="PAID"?"Paid":"Unpaid",ic("card"),money(projectTotal())+" total")+
-      statCard("Messages sent",String(db.messages.length),ic("msgico"),db.messages.length?("Last sent "+db.messages[db.messages.length-1].time):"No messages yet")+
+
+    '<div class="dash-stats">'+
+      dashStat("Current stage",stage?esc(stage.name):"Complete",stage?(stage.due?"Due "+esc(stage.due):"Up next"):"All milestones done")+
+      dashStat("Invoice",inv.status==="PAID"?"Paid":"Unpaid",money(projectTotal())+" total")+
+      dashStat("Messages",String(db.messages.length),db.messages.length?("Last "+esc(db.messages[db.messages.length-1].time)):"None sent yet")+
     '</div>'+
-    '<div class="card pad" style="margin-bottom:16px"><div class="rowbetween"><div class="sectitle">Recent activity</div></div>'+
-      (db.activity.length?db.activity.map(actRow).join(""):'<div class="sub" style="font-size:12.5px;padding:6px 0">No activity yet.</div>')+'</div>'+
-    '<div class="card pad"><div class="sectitle" style="margin-bottom:8px">Milestones</div>'+
-      db.milestones.map(mileRow).join("")+
-    '</div>';
+
+    '<div class="dash-sec">'+
+      '<div class="dash-sec-head"><div class="dash-sec-title">Milestones</div>'+
+        '<div class="dash-sec-note">'+done+' / '+total+' complete</div></div>'+
+      '<div>'+db.milestones.map(mileRow).join("")+'</div>'+
+    '</div>'+
+
+    '<div class="dash-sec">'+
+      '<div class="dash-sec-head"><div class="dash-sec-title">Recent activity</div></div>'+
+      (db.activity.length?'<div>'+db.activity.map(actRow).join("")+'</div>'
+        :'<div class="dash-empty">Nothing yet. Saving a client, sending an invoice, or completing a milestone shows up here.</div>')+
+    '</div></div>';
+}
+function dashStat(k,v,m){
+  return '<div class="dash-stat"><div class="k">'+esc(k)+'</div><div class="v">'+v+'</div><div class="m">'+esc(m)+'</div></div>';
 }
 function mileRow(m,idx){
-  return '<div class="mile" onclick="toggleMilestone('+idx+')"><div class="mc '+(m.done?"done":"todo")+'">'+(m.done?ic("check"):'<i></i>')+'</div>'+
-    '<div class="mm"><div class="mt">'+esc(m.name)+'</div><div class="md">'+esc(m.desc)+'</div></div>'+
-    '<div class="mr">'+(m.done?"Done":"Due "+esc(m.due))+'</div></div>';
+  return '<div class="dash-mile'+(m.done?" done":"")+'" onclick="toggleMilestone('+idx+')">'+
+    '<div class="dash-check">'+(m.done?ic("check"):"")+'</div>'+
+    '<div style="flex:1;min-width:0"><div class="nm">'+esc(m.name)+'</div><div class="ds">'+esc(m.desc)+'</div></div>'+
+    '<div class="due">'+(m.done?"Done":(m.due?"Due "+esc(m.due):"—"))+'</div></div>';
 }
 function toggleMilestone(idx){
   var m=db.milestones[idx];if(!m)return;
@@ -223,16 +255,9 @@ function toggleMilestone(idx){
   if(m.done)logActivity("check","Milestone complete: "+m.name);
   persist();render();
 }
-function statCard(label,val,icon,meta){
-  return '<div class="card statcard"><div class="cardlabel">'+label+'</div>'+
-    '<div style="display:flex;align-items:center;justify-content:space-between"><div class="val">'+esc(val)+'</div>'+
-    '<div style="width:34px;height:34px;border-radius:11px;background:var(--glass-2);border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;opacity:.8">'+
-    '<span style="display:flex">'+icon.replace('viewBox','style="width:16px;height:16px;stroke:var(--grey)" viewBox')+'</span></div></div>'+
-    '<div class="meta">'+esc(meta)+'</div></div>';
-}
 function actRow(a){
-  return '<div class="act"><div class="ai">'+ic(a.icon)+'</div>'+
-    '<div style="flex:1"><div class="at">'+esc(a.text)+'</div><div class="aw">'+esc(a.when)+'</div></div></div>';
+  return '<div class="dash-act"><div class="ico">'+ic(a.icon)+'</div>'+
+    '<div style="flex:1"><div class="tx">'+esc(a.text)+'</div><div class="tm">'+esc(a.when)+'</div></div></div>';
 }
 function logActivity(icon,text){
   db.activity.unshift({icon:icon,text:text,
