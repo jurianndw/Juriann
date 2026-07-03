@@ -40,7 +40,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   overflow:hidden}
 .brand{display:flex;align-items:center;gap:11px;padding:24px 22px 20px;transition:padding .28s var(--ease)}
 .brand img{width:32px;height:32px;object-fit:contain;display:block;flex:none}
-.brand .bn{font-size:15px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.brand .bn{font-size:15px;font-weight:600;letter-spacing:-.02em;white-space:nowrap}
 .brand .bt{font-size:10.5px;color:var(--grey-2);letter-spacing:.04em;margin-top:1px;white-space:nowrap}
 .search{margin:0 16px 8px;position:relative}
 .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--grey-2);fill:none;stroke-width:2}
@@ -117,12 +117,12 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 @media(prefers-reduced-motion:reduce){.page.active{animation:none}}
 
 /* ============ TYPO ============ */
-.h1{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
-.sub{color:var(--grey);font-size:14.5px;margin-top:7px}
+.h1{font-size:clamp(32px,4vw,44px);font-weight:560;letter-spacing:-.02em;line-height:1.08}
+.sub{color:var(--grey);font-size:15px;line-height:1.5;margin-top:10px}
 .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--grey-2);font-weight:600}
 .sectitle{font-size:16px;font-weight:600;letter-spacing:-.01em}
 .cardlabel{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--grey-2);font-weight:600}
-.pagehead{margin-bottom:28px}
+.pagehead{margin-bottom:34px}
 
 /* ============ CARDS ============ */
 .card{background:var(--glass);border:1px solid var(--hair);border-radius:var(--r-lg);
@@ -163,7 +163,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .ring{position:relative;width:132px;height:132px}
 .ring svg{transform:rotate(-90deg)}
 .ring .rv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ring .rv b{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.ring .rv b{font-size:30px;font-weight:560;letter-spacing:-.02em}
 .ring .rv span{font-size:10.5px;color:var(--grey-2);text-transform:uppercase;letter-spacing:.09em;font-weight:600;margin-top:2px}
 
 /* progress bar */
