@@ -166,7 +166,6 @@ function goPage(id){
   el("crumb").textContent=t?t[1]:id;
   render();
   el("scroll").scrollTop=0;
-  closeNotif();
 }
 
 /* ---------- render dispatch ---------- */
@@ -237,22 +236,9 @@ function actRow(a){
 }
 function logActivity(icon,text){
   db.activity.unshift({icon:icon,text:text,
-    when:new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short"})+" · "+nowTime(),
-    unread:true});
+    when:new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short"})+" · "+nowTime()});
   if(db.activity.length>30)db.activity.length=30;
   persist();
-  renderNotif();
-}
-function notifRow(a){
-  return '<div class="ni"><div class="nd"'+(a.unread?"":' style="background:var(--grey-3)"')+'></div>'+
-    '<div><div class="nt">'+esc(a.text)+'</div><div class="nw">'+esc(a.when)+'</div></div></div>';
-}
-function renderNotif(){
-  var n=el("notif");if(!n)return;
-  var unread=db.activity.filter(function(a){return a.unread;}).length;
-  n.innerHTML='<div class="nh">Notifications'+(unread?' <span class="pill acc" style="font-size:10px">'+unread+' new</span>':'')+'</div>'+
-    (db.activity.length?db.activity.slice(0,10).map(notifRow).join(""):'<div class="sub" style="font-size:12.5px;padding:14px 18px">No notifications yet.</div>');
-  var dot=el("notifDot");if(dot)dot.style.display=unread?"block":"none";
 }
 function greeting(){var h=new Date().getHours();return h<12?"Good morning":h<18?"Good afternoon":"Good evening";}
 
@@ -687,22 +673,10 @@ function exportPDF(){
     .catch(function(){toast("PDF failed — using print dialog");window.print();});
 }
 
-/* ---------- theme / notif / toast ---------- */
+/* ---------- theme / toast ---------- */
 function applyTheme(){document.documentElement.setAttribute("data-theme",db.theme);
   el("themeIco").innerHTML=db.theme==="dark"?ICONS.sun||'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>':'<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.9" y1="4.9" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.1" y2="19.1"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.9" y1="19.1" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.1" y2="4.9"/>';}
 function toggleTheme(){db.theme=db.theme==="dark"?"light":"dark";persist();applyTheme();}
-function toggleNotif(e){
-  e.stopPropagation();
-  var n=el("notif");
-  var opening=!n.classList.contains("show");
-  n.classList.toggle("show");
-  if(opening&&db.activity.some(function(a){return a.unread;})){
-    db.activity.forEach(function(a){a.unread=false;});
-    persist();renderNotif();
-  }
-}
-function closeNotif(){el("notif").classList.remove("show");}
-document.addEventListener("click",function(e){var n=el("notif");if(n&&n.classList.contains("show")&&!n.contains(e.target))closeNotif();});
 
 function toast(msg){
   var wrap=el("toasts");var t=document.createElement("div");t.className="toast";
@@ -729,7 +703,7 @@ function initSearch(){
 /* ---------- boot ---------- */
 function bootUI(){
   setHeaderIdentity();
-  applyTheme();buildNav();render();renderNotif();
+  applyTheme();buildNav();render();
 }
 function setHeaderIdentity(){
   var c=db.client;

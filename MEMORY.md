@@ -12,6 +12,10 @@ A request came in to "audit and remove all mock/placeholder data, add real-time 
 
 Key consequence worth remembering: the Messages feature has no real inbound channel (no backend, no client-facing chat receiver) — after removing the fake auto-reply, `me:false` (incoming) messages can never be created again. The Dashboard's "Unread messages" stat and the nav badge were therefore replaced with a real "Messages sent" count rather than built around a `read`-flag mechanism that would have been permanently dead code.
 
+## Reversal: notification bell removed (2026-07-03, later same day)
+
+The notification bell/dropdown built as part of the above work (real-rendered from `db.activity`, unread dot, mark-as-read-on-open) was removed entirely at the user's request ("will not be needed") shortly after being shipped. Removed: `notifRow`/`renderNotif`/`toggleNotif`/`closeNotif`, the bell button and `#notif` container in `index.html`, and the `unread` field on activity entries. Kept: `logActivity()` and `db.activity` itself — the Dashboard's "Recent activity" card still needs them and was not part of this ask. If notifications are wanted again later, re-derive from `db.activity` rather than re-adding a separate tracking mechanism.
+
 ## Known issues / gaps (as of 2026-07-03)
 
 - Messages page has no real inbound channel — it's an outbound-only log of what you sent, not a live two-way chat. If a real chat backend is ever added, revisit the "Messages sent" stat and consider real unread tracking then.
