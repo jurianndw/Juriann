@@ -16,6 +16,17 @@ Key consequence worth remembering: the Messages feature has no real inbound chan
 
 The notification bell/dropdown built as part of the above work (real-rendered from `db.activity`, unread dot, mark-as-read-on-open) was removed entirely at the user's request ("will not be needed") shortly after being shipped. Removed: `notifRow`/`renderNotif`/`toggleNotif`/`closeNotif`, the bell button and `#notif` container in `index.html`, and the `unread` field on activity entries. Kept: `logActivity()` and `db.activity` itself — the Dashboard's "Recent activity" card still needs them and was not part of this ask. If notifications are wanted again later, re-derive from `db.activity` rather than re-adding a separate tracking mechanism.
 
+## Architecture decision: team sign-in removed (2026-07-03)
+
+The Supabase team-login gate (login overlay, sign in/out, session-gated sync) was removed at the user's request — reasoning: "this is only for my agency and where we manage our client," i.e. not worth the friction for an internal tool used by a handful of trusted people. Confirmed with the user first, since removing login isn't just a UI change: it changes how the *shared* `portal_clients` table is protected. Chosen approach: keep the shared cloud sync (Past Clients still syncs across the team automatically), just drop the login prompt — `cloudReady()` no longer checks for a session, `initCloud()` calls `syncClients(true)` immediately instead of waiting for `onAuthStateChange`. Removed entirely: `session` var, `showLogin`/`hideLogin`/`skipLogin`/`doLogin`/`doLogout`, the `signedout` cloud-state, and the `.login-*` CSS block.
+
+**⚠️ Action required on the Supabase side, not yet done:** reads already succeed anonymously (an existing policy must allow `anon` SELECT), but writes do not — confirmed via a live test: inserting a new client returns `42501 new row violates row-level security policy for table "portal_clients"` over the anon key. Until the RLS policy is updated, every new/edited client silently falls back to local-only (`_dirty:true`, chip shows "Offline — saved locally") and never reaches the shared table. Fix: in the Supabase dashboard → this project → Authentication/Policies → `portal_clients`, add a policy granting the `anon` role `INSERT`, `UPDATE`, and `DELETE` (SELECT already works), e.g.:
+```sql
+create policy "anon full access" on portal_clients
+  for all to anon using (true) with check (true);
+```
+The old per-user Auth accounts (Juriann/Tiaan/Ruben) created for sign-in are no longer used by the app and can be left alone or removed at the user's discretion — they're not a functional dependency anymore.
+
 ## Known issues / gaps (as of 2026-07-03)
 
 - Messages page has no real inbound channel — it's an outbound-only log of what you sent, not a live two-way chat. If a real chat backend is ever added, revisit the "Messages sent" stat and consider real unread tracking then.

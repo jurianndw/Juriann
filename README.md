@@ -51,34 +51,26 @@ output directory: `/`). No manual uploads needed.
 Then "Add to Home Screen" on your phone.
 All data is saved in the browser's local storage on the device you use.
 
-## Cloud sync (Supabase) — one-time setup
-The Past Clients list now syncs to a shared team database
+## Cloud sync (Supabase)
+The Past Clients list syncs to a shared team database
 (table `portal_clients` in your "Outreach Dashboard" Supabase project).
 Everything else (invoice, agreement, messages) stays local per device.
 
-Two steps to switch it on:
+There is no sign-in — this is an internal tool for Arcen Digital only, so
+the app connects straight away with no login screen. Your Supabase
+publishable key is pasted at the top of app.js (safe to ship in frontend
+code — see the comment there).
 
-1. PASTE YOUR KEY
-   - Supabase dashboard > Outreach Dashboard > Project Settings > API Keys
-   - Copy the "publishable" key (starts with sb_publishable_...).
-     The legacy "anon" key (starts with eyJ...) also works.
-   - Open app.js, find PASTE_YOUR_PUBLISHABLE_KEY_HERE near the top,
-     replace it with your key. Redeploy to Cloudflare.
-   - This key is safe in frontend code — the table is protected by
-     Row Level Security and requires login.
-
-2. CREATE TEAM LOGINS (one per person: you, Tiaan, Ruben)
-   - Supabase dashboard > Authentication > Users > Add user > Create new user
-   - Enter email + password, tick "Auto Confirm User", save.
-   - There is deliberately NO public sign-up in the app — only accounts
-     you create here can see client data.
+**Supabase-side requirement:** since there's no login, the `portal_clients`
+table's Row Level Security policy must allow the `anon` role to
+select/insert/update/delete directly (not just `authenticated`). If you
+ever see new clients save "locally only" and never show up on another
+device, check that policy first — see MEMORY.md for the exact SQL.
 
 How it behaves:
 - Until a key is pasted, the app runs exactly as before ("Local only").
-- With a key, a team sign-in screen appears. "Continue offline" is always
-  available if you just need the tools without the shared list.
-- The chip in the top bar shows sync status (Cloud synced / Offline /
-  Not signed in). Tap it to sync or sign in.
+- The chip in the top bar shows sync status (Cloud synced / Offline).
+  Tap it to sync now.
 - If the connection drops, clients save to the device and push
   automatically on the next successful sync.
-- Settings > Team account: sign out, sync now, see who's signed in.
+- Settings > Team account: sync now.

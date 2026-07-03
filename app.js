@@ -562,15 +562,10 @@ function pgSettings(){
   var acct;
   if(!CLOUD_ON){
     acct='<div class="sub" style="font-size:12.5px">Cloud sync is not configured. Paste your Supabase publishable key at the top of <b>app.js</b> (marked PASTE_YOUR_PUBLISHABLE_KEY_HERE) and redeploy — then the client list is shared across your whole team.</div>';
-  }else if(session){
-    acct='<div class="rowbetween" style="flex-wrap:wrap;gap:10px"><div><div style="font-size:13.5px;font-weight:600">Signed in as '+esc(session.user&&session.user.email||"team member")+'</div>'+
-      '<div class="sub" style="font-size:12px;margin-top:3px">Past Clients sync to the shared team database.</div></div>'+
-      '<div style="display:flex;gap:8px"><button class="btn sm" onclick="syncClients(true);toast(\'Syncing…\')">'+ic("upload")+'Sync now</button>'+
-      '<button class="btn sm" onclick="doLogout()">Sign out</button></div></div>';
   }else{
-    acct='<div class="rowbetween" style="flex-wrap:wrap;gap:10px"><div><div style="font-size:13.5px;font-weight:600">Not signed in</div>'+
-      '<div class="sub" style="font-size:12px;margin-top:3px">Clients are saving to this device only. Sign in to use the shared team list.</div></div>'+
-      '<button class="btn pri sm" onclick="showLogin()">'+ic("check")+'Sign in</button></div>';
+    acct='<div class="rowbetween" style="flex-wrap:wrap;gap:10px"><div><div style="font-size:13.5px;font-weight:600">Cloud sync active</div>'+
+      '<div class="sub" style="font-size:12px;margin-top:3px">Past Clients sync to the shared team database automatically.</div></div>'+
+      '<button class="btn sm" onclick="syncClients(true);toast(\'Syncing…\')">'+ic("upload")+'Sync now</button></div>';
   }
   return '<div class="pagehead"><div class="h1">Settings</div><div class="sub">Edit your agency\'s info and this project\'s details — everything here updates the invoice, agreement and documents automatically.</div></div>'+
     '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:14px">Team account</div>'+acct+'</div>'+
@@ -718,18 +713,13 @@ function boot(){restore();bootUI();initSearch();initCloud();}
    Local storage stays as the offline cache; the portal_clients
    table is the shared source of truth for the Past Clients list.
    ================================================================== */
-var supa=null,session=null,CLOUD_ON=false,syncing=false,lastSync=0,offlineDismissed=false;
+var supa=null,CLOUD_ON=false,syncing=false,lastSync=0;
 
 function initCloud(){
   if(!window.supabase||!SUPA_URL||!SUPA_KEY||SUPA_KEY.indexOf("PASTE")===0){setCloudState("local");return;}
   try{supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){setCloudState("local");return;}
   CLOUD_ON=true;
-  supa.auth.onAuthStateChange(function(ev,s){
-    session=s;
-    if(s){hideLogin();syncClients();}
-    else{setCloudState("signedout");if(!offlineDismissed)showLogin();}
-    if(current==="settings")render();
-  });
+  syncClients(true);
 }
 
 /* ---- status chip ---- */
@@ -738,7 +728,6 @@ function setCloudState(state){
   if(!chip||!txt)return;
   var map={
     local:   ["","Local only",false],
-    signedout:["warn","Not signed in",true],
     syncing: ["acc","Syncing…",true],
     synced:  ["ok","Cloud synced",true],
     offline: ["warn","Offline — saved locally",true]
@@ -751,41 +740,9 @@ function setCloudState(state){
 }
 function cloudChipClick(){
   var s=el("cloudchip").getAttribute("data-state");
-  if(s==="signedout")showLogin();
-  else if(s==="synced"||s==="offline")syncClients(true);
+  if(s==="synced"||s==="offline")syncClients(true);
   else if(s==="local")toast("Cloud not set up yet — paste your Supabase key at the top of app.js");
 }
-
-/* ---- login overlay ---- */
-function showLogin(){
-  offlineDismissed=false;
-  var o=el("loginOverlay");
-  if(o){o.style.display="flex";return;}
-  var d=document.createElement("div");
-  d.id="loginOverlay";d.className="login-overlay";
-  d.innerHTML='<div class="login-card">'+
-    '<div class="login-mark">A</div>'+
-    '<div class="login-title">Arcen Digital</div>'+
-    '<div class="login-sub">Team sign in — client portal</div>'+
-    '<div class="f full" style="margin-bottom:10px"><label>Email</label><input id="li_email" type="email" autocomplete="username" placeholder="you@arcen.digital"></div>'+
-    '<div class="f full" style="margin-bottom:6px"><label>Password</label><input id="li_pw" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')doLogin()"></div>'+
-    '<div id="li_err" class="login-err"></div>'+
-    '<button class="btn pri" style="width:100%;justify-content:center;margin-top:8px" onclick="doLogin()">'+ic("check")+'Sign in</button>'+
-    '<div class="login-skip" onclick="skipLogin()">Continue offline (this device only)</div>'+
-    '</div>';
-  document.body.appendChild(d);
-}
-function hideLogin(){var o=el("loginOverlay");if(o)o.style.display="none";}
-function skipLogin(){offlineDismissed=true;hideLogin();setCloudState("signedout");toast("Working offline — clients save to this device only");}
-function doLogin(){
-  var em=el("li_email").value.trim(),pw=el("li_pw").value,err=el("li_err");
-  err.textContent="";
-  if(!em||!pw){err.textContent="Enter your email and password.";return;}
-  supa.auth.signInWithPassword({email:em,password:pw}).then(function(r){
-    if(r.error)err.textContent=r.error.message;
-  }).catch(function(){err.textContent="Could not reach the server — check your connection.";});
-}
-function doLogout(){if(supa)supa.auth.signOut();toast("Signed out");}
 
 /* ---- row <-> local mapping ---- */
 function rowToClient(r){
@@ -806,7 +763,7 @@ function fmtDate(d){
 }
 
 /* ---- sync engine ---- */
-function cloudReady(){return CLOUD_ON&&supa&&session;}
+function cloudReady(){return CLOUD_ON&&!!supa;}
 function syncClients(force){
   if(!cloudReady()||syncing)return;
   if(!force&&Date.now()-lastSync<15000)return;

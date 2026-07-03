@@ -40,8 +40,8 @@ Rules for any AI agent working in this repo. Read this before making changes.
 
 ## Security rules
 
-- The Supabase key in `app.js` (`SUPA_KEY`) is a publishable key, intentionally safe to ship client-side — the table is protected by Row Level Security and requires team login. Do not treat it as a secret, but also don't add a service-role key here.
-- No public sign-up — only accounts created directly in the Supabase dashboard can access client data. Don't add a sign-up flow.
+- The Supabase key in `app.js` (`SUPA_KEY`) is a publishable key, intentionally safe to ship client-side. Do not treat it as a secret, but also don't add a service-role key here.
+- There is deliberately no sign-in/auth in this app (removed 2026-07-03 — see MEMORY.md) — it's an internal tool for Arcen Digital staff only, trusted equally. Do not re-add a login gate unless explicitly asked. Access control, if ever needed again, lives in Supabase RLS policies, not client-side auth UI.
 
 ## MCP usage
 
@@ -51,5 +51,4 @@ Rules for any AI agent working in this repo. Read this before making changes.
 ## Do-not-do list
 
 - Do not silently replace this local-storage/single-table architecture with a full backend, ORM, or multi-table schema — that's a large decision requiring explicit user sign-off (see MEMORY.md).
-- Do not remove the "Continue offline" path from the login gate — it's intentional (device-local mode when no team login is set up).
 - Do not add fake/placeholder/demo data anywhere — this project just went through a full audit specifically to remove that (see MEMORY.md).
