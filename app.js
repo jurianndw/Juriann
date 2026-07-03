@@ -152,9 +152,8 @@ function buildNav(){
   el("nav").innerHTML=NAV_GROUPS.map(function(g){
     var items=g[1].map(function(id){
       var p=byId[id];if(!p)return "";
-      var badge=id==="messages"?'<span class="badge">1</span>':"";
       return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" onclick="goPage(\''+id+'\')">'+
-        ic(p[2])+'<span>'+p[1]+'</span>'+badge+'</button>';
+        ic(p[2])+'<span>'+p[1]+'</span></button>';
     }).join("");
     return '<div class="navgroup"><div class="navlabel">'+g[0]+'</div>'+items+'</div>';
   }).join("");
@@ -569,10 +568,6 @@ function sendMsg(){
   var i=el("msgInput");if(!i||!i.value.trim())return;
   db.messages.push({me:true,who:"You",text:i.value.trim(),time:nowTime()});
   persist();render();
-  setTimeout(function(){
-    db.messages.push({me:false,who:"Arcen Digital",text:"Thanks — got it. We'll get back to you shortly.",time:nowTime()});
-    persist();if(current==="messages")render();toast("New reply from Arcen");
-  },1400);
 }
 function nowTime(){return new Date().toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"});}
 
