@@ -49,19 +49,18 @@ var PAGES=[
   ["dashboard","Dashboard","grid"],
   ["onboard","Client Onboarding","sparkle"],
   ["agreement","Service Agreement","file"],
-  ["invoice","Invoice","card"],
+  ["invoice","Invoices","card"],
   ["messages","Messages","chat"],
-  ["clients","Past Clients","users"],
+  ["clients","Clients","users"],
   ["settings","Settings","gear"]
 ];
 
-/* Sidebar grouped by where each screen falls in the client process */
+/* Sidebar grouped by domain, not by workflow step — calmer, less "wizard" */
 var NAV_GROUPS=[
-  ["Overview",              ["dashboard"]],
-  ["Step 1 · Onboard",      ["onboard"]],
-  ["Step 2 · Paperwork",    ["agreement","invoice"]],
-  ["Step 3 · Deliver",      ["messages"]],
-  ["Manage",                ["clients","settings"]]
+  ["",           ["dashboard"]],
+  ["Clients",    ["onboard","clients"]],
+  ["Documents",  ["agreement","invoice"]],
+  ["Workspace",  ["messages","settings"]]
 ];
 
 var ICONS={
@@ -156,7 +155,7 @@ function buildNav(){
       return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" title="'+esc(p[1])+'" onclick="goPage(\''+id+'\')">'+
         ic(p[2])+'<span>'+p[1]+'</span></button>';
     }).join("");
-    return '<div class="navgroup"><div class="navlabel">'+g[0]+'</div>'+items+'</div>';
+    return '<div class="navgroup">'+(g[0]?'<div class="navlabel">'+g[0]+'</div>':"")+items+'</div>';
   }).join("");
 }
 function goPage(id){

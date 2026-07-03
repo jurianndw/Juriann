@@ -35,7 +35,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 
 /* ============ SIDEBAR ============ */
 .sidebar{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
-  border-right:1px solid var(--border);display:flex;flex-direction:column;backdrop-filter:blur(20px);
+  border-right:1px solid var(--hair);display:flex;flex-direction:column;backdrop-filter:blur(20px);
   overflow:hidden}
 .brand{display:flex;align-items:center;gap:11px;padding:24px 22px 20px;transition:padding .28s var(--ease)}
 .brand img{width:32px;height:32px;object-fit:contain;display:block;flex:none}
@@ -43,27 +43,30 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .brand .bt{font-size:10.5px;color:var(--grey-2);letter-spacing:.04em;margin-top:1px;white-space:nowrap}
 .search{margin:0 16px 8px;position:relative}
 .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--grey-2);fill:none;stroke-width:2}
-.search input{width:100%;background:var(--glass);border:1px solid var(--border);border-radius:11px;
+.search input{width:100%;background:var(--glass);border:1px solid transparent;border-radius:11px;
   padding:9px 12px 9px 34px;color:var(--white);font-size:13px;font-family:inherit;transition:.2s}
 .search input::placeholder{color:var(--grey-2)}
-.search input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
-.navlabel{font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:var(--grey-3);
-  font-weight:700;padding:6px 14px 8px;white-space:nowrap}
+.search input:focus{outline:none;background:var(--glass-2);border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.navlabel{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--grey-3);
+  font-weight:600;padding:0 14px 9px;white-space:nowrap}
 .nav{padding:8px 14px 0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex:1}
-.navgroup{display:flex;flex-direction:column;gap:3px;padding-bottom:12px;margin-bottom:10px;border-bottom:1px solid var(--border)}
-.navgroup:last-child{border-bottom:none;margin-bottom:0}
-.navitem{display:flex;align-items:center;gap:12px;padding:10px 13px;border:none;background:none;
+.navgroup{display:flex;flex-direction:column;gap:2px;margin-bottom:24px}
+.navgroup:last-child{margin-bottom:0}
+.navitem{display:flex;align-items:center;gap:12px;padding:9px 13px;border:none;background:none;
   color:var(--grey);font-size:13.5px;font-weight:500;text-align:left;width:100%;border-radius:12px;
-  position:relative;transition:background .18s var(--ease),color .18s var(--ease),padding .28s var(--ease)}
+  position:relative;transition:background .2s var(--ease),color .2s var(--ease),padding .28s var(--ease)}
 .navitem:hover{background:var(--glass);color:var(--white)}
 .navitem.on{background:var(--glass-2);color:var(--white)}
 .navitem.on::before{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);
-  width:3px;height:20px;border-radius:0 3px 3px 0;background:var(--grad)}
-.navitem svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.navitem span{white-space:nowrap;overflow:hidden}
+  width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--grad)}
+.navitem svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none;
+  transition:transform .2s var(--ease)}
+.navitem:hover svg{transform:translateX(1.5px)}
+.navitem span{white-space:nowrap;overflow:hidden;transition:transform .2s var(--ease)}
+.navitem:hover span{transform:translateX(1.5px)}
 .navitem .badge{margin-left:auto;background:var(--acc);color:var(--on-acc);font-size:10px;font-weight:700;
   min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px}
-.sidefoot{padding:14px;border-top:1px solid var(--border)}
+.sidefoot{padding:14px;border-top:1px solid var(--hair)}
 .usercard{display:flex;align-items:center;gap:11px;padding:10px;border-radius:14px;background:var(--glass);border:1px solid var(--hair);
   transition:padding .28s var(--ease)}
 .uava{width:34px;height:34px;border-radius:50%;background:var(--glass-2);border:1.5px solid var(--acc);display:flex;align-items:center;justify-content:center;
