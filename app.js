@@ -134,7 +134,7 @@ function ring(pct,size){
   var id="g"+Math.floor(Math.random()*99999);
   return '<div class="ring" style="width:'+size+'px;height:'+size+'px">'+
     '<svg width="'+size+'" height="'+size+'"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="1" y2="1">'+
-    '<stop offset="0" stop-color="#4C7EFF"/><stop offset="1" stop-color="#6D5CE7"/></linearGradient></defs>'+
+    '<stop offset="0" stop-color="var(--acc)"/><stop offset="1" stop-color="var(--acc-2)"/></linearGradient></defs>'+
     '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--ring-track)" stroke-width="8"/>'+
     '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="url(#'+id+')" stroke-width="8" '+
     'stroke-linecap="round" stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+c.toFixed(1)+'" '+
@@ -190,7 +190,6 @@ function pgDashboard(){
   var total=db.milestones.length;
   var done=db.milestones.filter(function(m){return m.done;}).length;
   var pct=total?Math.round(done/total*100):0;
-  var stage=db.milestones.filter(function(m){return !m.done;})[0];
   var nextIdx=db.milestones.findIndex(function(m){return !m.done;});
   var title=c.name?esc(c.name):"Welcome back";
   var lede;
@@ -218,7 +217,6 @@ function pgDashboard(){
     '</div>'+
 
     '<div class="dash-stats">'+
-      dashStat("Current stage",stage?esc(stage.name):"Complete",stage?(stage.due?"Due "+esc(stage.due):"Up next"):"All milestones done")+
       dashStat("Invoice",inv.status==="PAID"?"Paid":"Unpaid",money(projectTotal())+" total")+
       dashStat("Messages",String(db.messages.length),db.messages.length?("Last "+esc(db.messages[db.messages.length-1].time)):"None sent yet")+
     '</div>'+
@@ -249,7 +247,18 @@ function toggleMilestone(idx){
   var m=db.milestones[idx];if(!m)return;
   m.done=!m.done;
   if(m.done)logActivity("check","Milestone complete: "+m.name);
-  persist();render();
+  persist();
+  var reduced=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var row=document.querySelectorAll(".dash-mile")[idx];
+  if(m.done&&row&&!reduced){
+    row.classList.add("done");
+    var chk=row.querySelector(".dash-check");
+    chk.innerHTML=ic("check");
+    chk.classList.add("pop");
+    setTimeout(render,380);
+  }else{
+    render();
+  }
 }
 function actRow(a){
   return '<div class="dash-act"><div class="ico">'+ic(a.icon)+'</div>'+
