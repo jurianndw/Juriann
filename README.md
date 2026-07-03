@@ -45,8 +45,10 @@ Open it through Live Server (not by double-clicking index.html) so the
 browser loads all three files together.
 
 ## Deploy (for phone / sharing)
-Upload all three files to Cloudflare Pages (Upload assets), keeping
-index.html at the top level. Then "Add to Home Screen" on your phone.
+This repo is connected to a Cloudflare Pages project via Git —
+push to `master` and it redeploys automatically (build command: none,
+output directory: `/`). No manual uploads needed.
+Then "Add to Home Screen" on your phone.
 All data is saved in the browser's local storage on the device you use.
 
 ## Cloud sync (Supabase) — one-time setup
