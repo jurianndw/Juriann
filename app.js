@@ -14,7 +14,7 @@ var SUPA_KEY="sb_publishable_iB_x52O4aGTYryy0WPmyHQ_NDeXyIjd";
 
 /* ---------- default data ---------- */
 var DEFAULT={
-  theme:"dark",
+  theme:"light",
   sidebarCollapsed:false,
   client:{name:"",company:"",contact:"",email:"",phone:"",address:""},
   project:{name:"Website Project",objective:"",status:"Not started",estCompletion:"",manager:"Arcen Digital",progress:0,
