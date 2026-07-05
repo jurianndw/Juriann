@@ -1,6 +1,7 @@
 "use strict";
 var KEY="arcen_portal_v1";
 var clientsView={sort:null,dir:1,filter:"all",q:"",page:1,selected:{},pageIndices:[]};
+var onboardStep=1;
 
 /* ==================================================================
    SUPABASE — shared client database (Outreach Dashboard project)
@@ -94,7 +95,9 @@ var ICONS={
   design:'<path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/>',
   copy:'<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
-  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>'
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  chevronLeft:'<polyline points="15 18 9 12 15 6"/>',
+  chevronRight:'<polyline points="9 18 15 12 9 6"/>'
 };
 /* WhatsApp brand mark (filled, official glyph) */
 var WA_LOGO='<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;stroke:none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
@@ -314,49 +317,70 @@ function greeting(){var h=new Date().getHours();return h<12?"Good morning":h<18?
 /* ==================================================================
    CLIENT ONBOARDING — enter details once, everything else fills itself
    ================================================================== */
+var ONBOARD_STEPS=[{n:1,t:"Client details"},{n:2,t:"Project & pricing"},{n:3,t:"Welcome message"}];
+function wizIndicator(){
+  return '<div class="wizsteps">'+ONBOARD_STEPS.map(function(s,idx){
+    var cls=s.n===onboardStep?"on":(s.n<onboardStep?"done":"");
+    var line=idx<ONBOARD_STEPS.length-1?'<div class="wizline"></div>':"";
+    return '<div class="wizstep '+cls+'" onclick="onboardNav('+s.n+')"><span class="wizdot">'+
+      (s.n<onboardStep?ic("check"):s.n)+'</span><span class="wizlabel">'+s.t+'</span></div>'+line;
+  }).join("")+'</div>';
+}
 function pgOnboard(){
   var c=db.client,p=db.project,inv=db.invoice,m=db.monthly;
   var web=inv.items[0]||{price:12000},seo=inv.items[1]||{price:2500};
-  return '<div class="pagehead"><div class="h1">Client Onboarding</div><div class="sub">Fill in the client'+"'"+'s details, save, and the welcome message, invoice and agreement are generated automatically.</div></div>'+
-
-    '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:16px">1 · Client details</div>'+
+  var body;
+  if(onboardStep===1){
+    body='<div class="card pad"><div class="sectitle" style="margin-bottom:6px">Client details</div>'+
+      '<div class="sub" style="margin-bottom:22px;font-size:12.5px">Who are we building this for? Business name and first name are the only two required to continue.</div>'+
       '<div class="setgrid">'+
         setField("ob_company","Business name",c.company)+
         setField("ob_contact","Contact person (full name)",c.contact)+
         setField("ob_name","First name (used in messages)",c.name)+
-        setField("ob_phone","WhatsApp number (e.g. 082 123 4567)",c.phone)+
-        setField("ob_email","Email",c.email)+
+        setField("ob_phone","WhatsApp number",c.phone,"text","e.g. 082 123 4567 — used by the Send via WhatsApp button")+
+        setField("ob_email","Email",c.email,"text","Optional — only needed if you'd rather email the welcome message")+
         setField("ob_address","Address / town",c.address)+
-      '</div></div>'+
-
-    '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:16px">2 · Project & pricing</div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:flex-end;margin-top:22px">'+
+        '<button class="btn pri" onclick="onboardNav(2)">Continue'+ic("chevronRight")+'</button></div>'+
+    '</div>';
+  }else if(onboardStep===2){
+    body='<div class="card pad"><div class="sectitle" style="margin-bottom:6px">Project &amp; pricing</div>'+
+      '<div class="sub" style="margin-bottom:22px;font-size:12.5px">Set the scope and what this project is worth.</div>'+
       '<div class="setgrid">'+
         setField("ob_pname","Project name",p.name)+
         setField("ob_est","Estimated completion",p.estCompletion)+
         setField("ob_web","Website design & development (R)",web.price,"number")+
         setField("ob_seo","Basic SEO setup (R)",seo.price,"number")+
-        setField("ob_dep","Deposit %",db.agreement.deposit,"number")+
+        setField("ob_dep","Deposit %",db.agreement.deposit,"number","Collected upfront; the rest becomes the balance due on completion")+
         setField("ob_due","Invoice due date",inv.due)+
       '</div>'+
-      '<div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">'+
+      '<div style="display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap">'+
         '<label style="display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer"><input type="checkbox" id="ob_mo" '+(m.enabled?"checked":"")+' style="accent-color:var(--acc);width:16px;height:16px"> Monthly hosting & maintenance</label>'+
-        '<div class="f" style="width:170px"><input id="ob_moprice" type="number" value="'+esc(m.price)+'" placeholder="Monthly amount (R)"></div>'+
-        '<span class="cardlabel">per month · billed 12 months on invoice</span>'+
+        '<div class="f" style="width:200px;margin:0"><input id="ob_moprice" type="number" value="'+esc(m.price)+'" placeholder=" "><label>Monthly amount (R)</label></div>'+
+        '<span class="cardlabel">billed 12 months on invoice</span>'+
       '</div>'+
-      '<div style="display:flex;justify-content:flex-end;margin-top:18px">'+
-        '<button class="btn pri" onclick="onboardSave()">'+ic("check")+'Save client & generate everything</button></div>'+
-    '</div>'+
-
-    '<div class="card pad"><div class="rowbetween" style="margin-bottom:12px"><div class="sectitle">3 · Welcome message</div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:22px">'+
+        '<button class="btn" onclick="onboardNav(1)">'+ic("chevronLeft")+'Back</button>'+
+        '<button class="btn pri" onclick="onboardNav(3)">Continue'+ic("chevronRight")+'</button></div>'+
+    '</div>';
+  }else{
+    body='<div class="card pad"><div class="rowbetween" style="margin-bottom:12px"><div class="sectitle">Welcome message</div>'+
       '<button class="btn sm" onclick="regenMsg()">'+ic("sparkle")+'Regenerate</button></div>'+
-      '<div class="sub" style="margin-bottom:12px;font-size:12.5px">Edit freely below — the WhatsApp button sends exactly what'+"'"+'s in this box.</div>'+
-      '<div class="f full"><textarea id="ob_msg" style="min-height:270px;font-size:13.5px;line-height:1.65" oninput="db.welcomeMsg=this.value;persist()">'+esc(db.welcomeMsg||buildWelcomeMsg())+'</textarea></div>'+
+      '<div class="sub" style="margin-bottom:16px;font-size:12.5px">Edit freely below — the WhatsApp button sends exactly what'+"'"+'s in this box.</div>'+
+      '<div class="f full"><textarea id="ob_msg" style="min-height:270px;font-size:13.5px;line-height:1.65;padding-top:16px" oninput="db.welcomeMsg=this.value;persist()">'+esc(db.welcomeMsg||buildWelcomeMsg())+'</textarea></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:12px">'+
+        '<button class="btn" onclick="onboardNav(2)">'+ic("chevronLeft")+'Back</button>'+
+        '<button class="btn pri" onclick="onboardFinish()">'+ic("check")+'Save client & generate everything</button></div>'+
       '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">'+
         '<button class="btn wa" onclick="openWhatsApp()">'+WA_LOGO+'Send via WhatsApp</button>'+
         '<button class="btn" onclick="copyMsg()">'+ic("copy")+'Copy message</button>'+
         '<button class="btn" onclick="goPage(\'invoice\')">'+ic("card")+'View invoice</button>'+
         '<button class="btn" onclick="goPage(\'agreement\')">'+ic("file")+'View agreement</button>'+
       '</div></div>';
+  }
+  return '<div class="pagehead"><div class="h1">Client Onboarding</div><div class="sub">Fill in the client'+"'"+'s details — the welcome message, invoice and agreement are generated automatically as you go.</div></div>'+
+    wizIndicator()+body;
 }
 
 function buildWelcomeMsg(){
@@ -396,33 +420,66 @@ function regenMsg(){
   var t=el("ob_msg");if(t)t.value=db.welcomeMsg;
   toast("Message regenerated from current details");
 }
-function onboardSave(){
+function onboardValidateStep1(){
+  var errs={};
+  if(!el("ob_company").value.trim())errs.ob_company="Business name is required";
+  if(!el("ob_name").value.trim())errs.ob_name="First name is required";
+  var email=el("ob_email").value.trim();
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))errs.ob_email="Enter a valid email address";
+  return errs;
+}
+function showFieldErrors(errs){
+  document.querySelectorAll(".f.err").forEach(function(f){f.classList.remove("err");});
+  document.querySelectorAll(".f-err").forEach(function(e){e.textContent="";});
+  var first=null;
+  Object.keys(errs).forEach(function(id){
+    var input=el(id);if(!input)return;
+    var f=input.closest(".f");if(f)f.classList.add("err");
+    var msg=el(id+"_err");if(msg)msg.textContent=errs[id];
+    if(!first)first=input;
+  });
+  if(first)first.focus();
+}
+function onboardSaveStep(step){
   var g=function(id){var e=el(id);return e?e.value.trim():"";};
   var c=db.client,p=db.project,inv=db.invoice;
-  if(!g("ob_company")||!g("ob_name")){toast("Business name and first name are required");return;}
-  c.company=g("ob_company");c.contact=g("ob_contact")||g("ob_name");c.name=g("ob_name");
-  c.phone=g("ob_phone");c.email=g("ob_email");c.address=g("ob_address");
-  p.name=g("ob_pname")||"Business Website";p.estCompletion=g("ob_est")||p.estCompletion;
-  db.agreement.deposit=Math.max(0,Math.min(100,parseInt(g("ob_dep"))||50));
-  db.agreement.balance=100-db.agreement.deposit;
-  inv.due=g("ob_due")||inv.due;
-  var webP=parseFloat(g("ob_web"))||0,seoP=parseFloat(g("ob_seo"))||0;
-  var mo=el("ob_mo"),moP=parseFloat(g("ob_moprice"))||0;
-  db.monthly.enabled=!!(mo&&mo.checked);db.monthly.price=moP;
-  /* rebuild invoice line items from pricing */
-  inv.items=[
-    {desc:"Website Design & Development",note:"Custom responsive build for "+c.company,qty:1,price:webP},
-    {desc:"Basic SEO Setup",note:"On-page SEO, schema, sitemap & Google indexing",qty:1,price:seoP}
-  ];
-  if(db.monthly.enabled&&moP>0)inv.items.push({desc:db.monthly.label+" (12 mo)",note:"Managed hosting + monthly support",qty:12,price:moP});
-  /* generate message + save into client history */
-  db.welcomeMsg=buildWelcomeMsg();
+  if(step===1){
+    c.company=g("ob_company");c.contact=g("ob_contact")||g("ob_name");c.name=g("ob_name");
+    c.phone=g("ob_phone");c.email=g("ob_email");c.address=g("ob_address");
+  }else if(step===2){
+    p.name=g("ob_pname")||"Business Website";p.estCompletion=g("ob_est")||p.estCompletion;
+    db.agreement.deposit=Math.max(0,Math.min(100,parseInt(g("ob_dep"))||50));
+    db.agreement.balance=100-db.agreement.deposit;
+    inv.due=g("ob_due")||inv.due;
+    var webP=parseFloat(g("ob_web"))||0,seoP=parseFloat(g("ob_seo"))||0;
+    var mo=el("ob_mo"),moP=parseFloat(g("ob_moprice"))||0;
+    db.monthly.enabled=!!(mo&&mo.checked);db.monthly.price=moP;
+    /* rebuild invoice line items from pricing */
+    inv.items=[
+      {desc:"Website Design & Development",note:"Custom responsive build for "+c.company,qty:1,price:webP},
+      {desc:"Basic SEO Setup",note:"On-page SEO, schema, sitemap & Google indexing",qty:1,price:seoP}
+    ];
+    if(db.monthly.enabled&&moP>0)inv.items.push({desc:db.monthly.label+" (12 mo)",note:"Managed hosting + monthly support",qty:12,price:moP});
+  }
+  persist();
+}
+function onboardNav(target){
+  if(target>onboardStep&&onboardStep===1){
+    var errs=onboardValidateStep1();
+    if(Object.keys(errs).length){showFieldErrors(errs);return;}
+  }
+  onboardSaveStep(onboardStep);
+  onboardStep=target;
+  render();
+}
+function onboardFinish(){
+  var c=db.client,inv=db.invoice;
+  db.welcomeMsg=el("ob_msg")?el("ob_msg").value:buildWelcomeMsg();
   var isNewClient=upsertClient();
   if(isNewClient)logActivity("check","New client added: "+c.company);
   logActivity("upload","Invoice "+inv.number+" created for "+c.company);
   persist();
   setHeaderIdentity();
-  render();
   toast("Saved — message, invoice & agreement updated");
 }
 function upsertClient(){
@@ -758,7 +815,7 @@ function pgSettings(){
         setField("s_pname","Project name",p.name)+setField("s_status","Status",p.status)+
         setField("s_est","Est. completion",p.estCompletion)+
       '</div>'+
-      '<div class="f full" style="margin-top:12px"><label>Objective</label><textarea id="s_obj">'+esc(p.objective)+'</textarea></div></div>'+
+      '<div class="f full" style="margin-top:16px"><textarea id="s_obj" placeholder=" ">'+esc(p.objective)+'</textarea><label>Objective</label></div></div>'+
     '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:16px">Your agency &amp; invoice details</div>'+
       '<div class="setgrid">'+
         setField("s_bizname","Business name (shown on invoice)",inv.bank.name)+setField("s_invno","Invoice number",inv.number)+
@@ -779,15 +836,20 @@ function pgSettings(){
     '<div class="floatbar"><button class="btn" onclick="resetAll()">'+ic("trash")+'Reset portal (clear all clients &amp; data)</button>'+
       '<button class="btn pri" onclick="saveSettings()">'+ic("check")+'Save changes</button></div>';
 }
-function setField(id,label,val,type){
-  return '<div class="f"><label>'+label+'</label><input id="'+id+'" type="'+(type||"text")+'" value="'+esc(val)+'"></div>';
+function setField(id,label,val,type,hint){
+  return '<div class="f"><input id="'+id+'" type="'+(type||"text")+'" value="'+esc(val)+'" placeholder=" " oninput="clearFieldErr(this)"><label for="'+id+'">'+label+'</label>'+
+    (hint?'<div class="f-hint">'+hint+'</div>':'')+'<div class="f-err" id="'+id+'_err"></div></div>';
+}
+function clearFieldErr(input){
+  var f=input.closest(".f");if(!f)return;f.classList.remove("err");
+  var e=f.querySelector(".f-err");if(e)e.textContent="";
 }
 function lineItemRow(i,idx){
   return '<div class="lirow" style="display:grid;grid-template-columns:2fr 2fr 70px 110px 36px;gap:9px;margin-bottom:9px;align-items:center">'+
-    '<div class="f"><input class="li-desc" placeholder="Description" value="'+esc(i.desc)+'"></div>'+
-    '<div class="f"><input class="li-note" placeholder="Note (optional)" value="'+esc(i.note||"")+'"></div>'+
-    '<div class="f"><input class="li-qty" type="number" min="1" value="'+esc(i.qty)+'"></div>'+
-    '<div class="f"><input class="li-price" type="number" min="0" placeholder="Price (R)" value="'+esc(i.price)+'"></div>'+
+    '<div class="f compact"><input class="li-desc" placeholder="Description" value="'+esc(i.desc)+'"></div>'+
+    '<div class="f compact"><input class="li-note" placeholder="Note (optional)" value="'+esc(i.note||"")+'"></div>'+
+    '<div class="f compact"><input class="li-qty" type="number" min="1" value="'+esc(i.qty)+'"></div>'+
+    '<div class="f compact"><input class="li-price" type="number" min="0" placeholder="Price (R)" value="'+esc(i.price)+'"></div>'+
     '<button class="iconbtn" style="width:34px;height:34px" title="Remove" onclick="this.parentNode.remove()">'+ic("trash")+'</button></div>';
 }
 function addLineItem(){

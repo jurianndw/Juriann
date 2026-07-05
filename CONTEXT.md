@@ -4,13 +4,13 @@ Living doc for in-progress work. Update as state changes; safe to overwrite each
 
 ## Current task
 
-No active task — the most recent thread was a sequence of design-system passes, each requested one at a time in the same conversation: dashboard content → app shell/layout → sidebar → cards → typography → color palette (light became default here) → buttons. All committed and pushed to `master` (`origin/master` on GitHub, `jurianndw/Juriann`), which auto-deploys to Cloudflare Pages.
+No active task — the most recent thread was a sequence of design-system passes, each requested one at a time in the same conversation: dashboard content → app shell/layout → sidebar → cards → typography → color palette (light became default here) → buttons → tables → forms. All committed and pushed to `master` (`origin/master` on GitHub, `jurianndw/Juriann`), which auto-deploys to Cloudflare Pages.
 
 ## What's already done (design-system state)
 
-See MEMORY.md's "Current visual design system" section for the durable summary — token conventions, what's deliberately excluded (print pages), and the FAB/ghost-button decisions. Don't re-derive these from scratch; read that section first.
+See MEMORY.md's "Current visual design system" section for the durable summary — token conventions, what's deliberately excluded (print pages), and the FAB/ghost-button/forms decisions. Don't re-derive these from scratch; read that section first.
 
-Chronologically, the design passes were: dashboard content prioritization → new app shell (collapsible sidebar, wider content, one floating save bar) → sidebar visual redesign → card redesign (radius/shadow/hover) → typography (large page titles, minimal weights) → color palette (light theme now default, semantic colors softened, three latent dark-only-hardcoded-color bugs found and fixed: topbar, toast, plus a stale blue selection color and missing light-theme scrollbar) → buttons (primary/secondary/ghost/icon all real classes, consistent hover-lift + press-scale language, `.btn.gold` dead class removed).
+Chronologically, the design passes were: dashboard content prioritization → new app shell (collapsible sidebar, wider content, one floating save bar) → sidebar visual redesign → card redesign (radius/shadow/hover) → typography (large page titles, minimal weights) → color palette (light theme now default, semantic colors softened, three latent dark-only-hardcoded-color bugs found and fixed: topbar, toast, plus a stale blue selection color and missing light-theme scrollbar) → buttons (primary/secondary/ghost/icon all real classes, consistent hover-lift + press-scale language, `.btn.gold` dead class removed) → tables (Past Clients rebuilt as sortable/filterable/paginated/bulk-actionable) → forms (floating labels, larger fields, inline validation, Client Onboarding converted to a 3-step wizard, Settings kept single-page).
 
 ## Outstanding item (not yet done)
 

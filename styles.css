@@ -410,13 +410,28 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .intakesec .hd .tt{font-size:14.5px;font-weight:600}
 .intakesec .hd .ss{font-size:11.5px;color:var(--grey-2)}
 .fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.f{display:flex;flex-direction:column;gap:6px}
+.f{display:flex;flex-direction:column;position:relative}
 .f.full{grid-column:1/-1}
-.f label{font-size:11.5px;color:var(--grey);font-weight:500}
-.f input,.f select,.f textarea{background:var(--glass);border:1px solid var(--border);border-radius:11px;
-  padding:11px 13px;color:var(--white);font-size:13px;font-family:inherit;transition:.2s}
-.f input::placeholder,.f textarea::placeholder{color:var(--grey-2)}
-.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.f input,.f select,.f textarea{background:var(--glass);border:1.5px solid var(--border);border-radius:14px;
+  padding:23px 16px 11px;color:var(--white);font-size:14.5px;font-family:inherit;width:100%;
+  transition:border-color .18s,box-shadow .18s}
+.f textarea{min-height:96px;resize:vertical;padding-top:27px}
+.f input::placeholder,.f textarea::placeholder{color:transparent}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft)}
+.f label{position:absolute;left:16px;top:17px;font-size:14.5px;color:var(--grey-2);
+  pointer-events:none;transform-origin:left top;transition:transform .16s var(--ease),color .16s}
+.f input:focus+label,.f input:not(:placeholder-shown)+label,
+.f textarea:focus+label,.f textarea:not(:placeholder-shown)+label{
+  transform:translateY(-9px) scale(.72);color:var(--acc);font-weight:600}
+.f-hint{font-size:12px;color:var(--grey-2);margin-top:7px;line-height:1.5}
+.f-err{font-size:12px;color:var(--dng);margin-top:7px;line-height:1.4}
+.f-err:empty{margin-top:0}
+.f.err input,.f.err textarea{border-color:var(--dng);box-shadow:0 0 0 4px var(--dng-soft)}
+@media(prefers-reduced-motion:reduce){.f label{transition:color .16s}}
+/* compact variant: dense repeatable rows (invoice line items) keep a visible placeholder, no floating label */
+.f.compact input{padding:10px 12px;font-size:13px;border-radius:11px}
+.f.compact input::placeholder{color:var(--grey-2)}
+.f.compact label{display:none}
 .f textarea{resize:vertical;min-height:70px}
 .chips{display:flex;flex-wrap:wrap;gap:9px}
 .chip{padding:9px 15px;border-radius:11px;border:1px solid var(--border);background:var(--glass);
@@ -463,8 +478,23 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .composer input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
 
 /* settings */
-.setgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.setgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px 18px}
 @media(max-width:700px){.setgrid{grid-template-columns:1fr}}
+
+/* onboarding wizard */
+.wizsteps{display:flex;align-items:center;margin-bottom:22px;padding:4px 2px}
+.wizstep{display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 4px}
+.wizdot{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;background:var(--glass-2);border:1.5px solid var(--border);color:var(--grey-2);
+  transition:background .18s,border-color .18s,color .18s}
+.wizdot svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.wizlabel{font-size:13px;color:var(--grey-2);font-weight:500;white-space:nowrap;transition:color .18s}
+.wizstep.on .wizdot{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.wizstep.on .wizlabel{color:var(--white);font-weight:600}
+.wizstep.done .wizdot{background:var(--acc-soft);border-color:var(--acc);color:var(--acc)}
+.wizstep.done .wizlabel{color:var(--white)}
+.wizline{flex:1;height:1.5px;background:var(--border);margin:0 14px;min-width:24px}
+@media(max-width:640px){.wizlabel{display:none}.wizline{margin:0 8px}}
 
 /* toast */
 .toasts{position:fixed;bottom:26px;right:26px;z-index:200;display:flex;flex-direction:column;gap:10px}
