@@ -2,6 +2,7 @@
 var KEY="arcen_portal_v1";
 var clientsView={sort:null,dir:1,filter:"all",q:"",page:1,selected:{},pageIndices:[]};
 var onboardStep=1;
+var profileIdx=-1;
 
 /* ==================================================================
    SUPABASE — shared client database (Outreach Dashboard project)
@@ -97,7 +98,8 @@ var ICONS={
   trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
   plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
   chevronLeft:'<polyline points="15 18 9 12 15 6"/>',
-  chevronRight:'<polyline points="9 18 15 12 9 6"/>'
+  chevronRight:'<polyline points="9 18 15 12 9 6"/>',
+  eye:'<path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/>'
 };
 /* WhatsApp brand mark (filled, official glyph) */
 var WA_LOGO='<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;stroke:none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
@@ -110,7 +112,10 @@ function el(id){return document.getElementById(id);}
 function ic(name,cls){return '<svg viewBox="0 0 24 24" '+(cls?'class="'+cls+'"':'')+'>'+(ICONS[name]||"")+'</svg>';}
 function initials(n){var p=String(n||"").trim().split(/\s+/).map(function(w){return w[0]||"";});return (p.join("").toUpperCase().slice(0,2))||"?";}
 
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+function persist(){
+  try{localStorage.setItem(KEY,JSON.stringify(db));}
+  catch(e){if(typeof toast==="function")toast("Storage full — this change may not have saved. Remove a file or photo to free up space.");}
+}
 function restore(){
   try{
     var r=JSON.parse(localStorage.getItem(KEY));
@@ -119,16 +124,20 @@ function restore(){
       /* migrate: fill any keys added in newer versions */
       Object.keys(DEFAULT).forEach(function(k){if(db[k]===undefined)db[k]=clone(DEFAULT[k]);});
       if(!db.clients)db.clients=[];
+      /* backfill per-client extras on records saved before they existed */
+      db.clients.forEach(function(x){applyClientMeta(x,x);applyClientSnapshot(x,x);});
     }
   }catch(e){db=clone(DEFAULT);}
 }
 
 /* invoice math */
-function invTotals(){
-  var sub=db.invoice.items.reduce(function(a,i){return a+(Number(i.qty)||0)*(Number(i.price)||0);},0);
-  var vat=sub*(Number(db.invoice.vat)||0)/100;
-  var disc=Number(db.invoice.discount)||0;
+function calcInvoiceTotals(inv){
+  var sub=(inv.items||[]).reduce(function(a,i){return a+(Number(i.qty)||0)*(Number(i.price)||0);},0);
+  var vat=sub*(Number(inv.vat)||0)/100;
+  var disc=Number(inv.discount)||0;
   return {sub:sub,vat:vat,disc:disc,grand:sub+vat-disc};
+}
+function invTotals(){return calcInvoiceTotals(db.invoice);
 }
 function projectTotal(){return invTotals().grand;}
 
@@ -183,6 +192,7 @@ function render(){
   else if(current==="invoice")html=pgInvoice();
   else if(current==="messages")html=pgMessages();
   else if(current==="settings")html=pgSettings();
+  else if(current==="profile")html=pgProfile();
   s.innerHTML='<div class="page active">'+html+'</div>';
   animateRings();
   if(current==="messages"){var th=document.querySelector(".thread");if(th)th.scrollTop=th.scrollHeight;}
@@ -482,6 +492,29 @@ function onboardFinish(){
   setHeaderIdentity();
   toast("Saved — message, invoice & agreement updated");
 }
+/* per-client extras (photo/timeline/notes/tasks/files/messages/document snapshots) are
+   local-only -- the shared Supabase table only ever carries the lightweight summary
+   fields (see clientToRow), so these never leave this device. applyClientMeta preserves
+   them across re-onboarding the same client; applyClientSnapshot does the same for the
+   project/invoice/agreement documents, falling back to sane defaults for a client that
+   was onboarded by a teammate on another device and has never been opened here. */
+function applyClientMeta(rec,src){
+  src=src||{};
+  rec.photo=src.photo||"";
+  rec.milestones=src.milestones?clone(src.milestones):clone(DEFAULT.milestones);
+  rec.notes=src.notes?clone(src.notes):[];
+  rec.tasks=src.tasks?clone(src.tasks):[];
+  rec.files=src.files?clone(src.files):[];
+  rec.messages=src.messages?clone(src.messages):[];
+}
+function applyClientSnapshot(rec,src){
+  src=src||{};
+  if(src.projectInfo)rec.projectInfo=clone(src.projectInfo);
+  else{rec.projectInfo=clone(DEFAULT.project);rec.projectInfo.name=rec.project||"";rec.projectInfo.status=rec.status||"Active";}
+  if(src.invoice)rec.invoice=clone(src.invoice);
+  else{rec.invoice=clone(DEFAULT.invoice);rec.invoice.status=rec.status==="Completed"?"PAID":"UNPAID";}
+  rec.agreement=src.agreement?clone(src.agreement):clone(DEFAULT.agreement);
+}
 function upsertClient(){
   var c=db.client,t=invTotals();
   var i=db.clients.findIndex(function(x){return x.company.toLowerCase()===c.company.toLowerCase();});
@@ -489,7 +522,12 @@ function upsertClient(){
     project:db.project.name,value:t.grand,date:new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short",year:"numeric"}),
     status:db.invoice.status==="PAID"?"Completed":"Active"};
   var isNew=i<0;
-  if(i>=0){rec.id=db.clients[i].id;rec.date=db.clients[i].date;db.clients[i]=rec;}else{db.clients.unshift(rec);}
+  if(i>=0){rec.id=db.clients[i].id;rec.date=db.clients[i].date;applyClientMeta(rec,db.clients[i]);}
+  else{applyClientMeta(rec,null);}
+  /* onboarding is the authoritative editor for the project/invoice/agreement documents,
+     so these always snapshot fresh from the live editing slots, never preserved from before */
+  rec.projectInfo=clone(db.project);rec.invoice=clone(db.invoice);rec.agreement=clone(db.agreement);
+  if(i>=0)db.clients[i]=rec;else db.clients.unshift(rec);
   cloudSaveClient(rec);
   return isNew;
 }
@@ -663,6 +701,7 @@ function clientRow(row){
     '<div><span class="pill '+(x.status==="Completed"?"ok":"acc")+'"><span class="d"></span>'+esc(x.status)+'</span></div>'+
     '<div class="tbl-cell-muted">'+esc(x.date)+'</div>'+
     '<div style="display:flex;gap:6px;justify-content:flex-end" onclick="event.stopPropagation()">'+
+      '<button class="iconbtn" title="View profile" onclick="openProfile('+i+')" style="width:30px;height:30px">'+ic("eye")+'</button>'+
       '<button class="iconbtn" title="WhatsApp" onclick="waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')" style="width:30px;height:30px;color:#25D366">'+WA_LOGO+'</button>'+
       '<button class="iconbtn" title="Load into portal" onclick="loadClient('+i+')" style="width:30px;height:30px">'+ic("upload")+'</button>'+
       '<button class="iconbtn" title="Remove" onclick="removeClient('+i+')" style="width:30px;height:30px">'+ic("trash")+'</button>'+
@@ -673,7 +712,14 @@ function loadClient(i){
   var x=db.clients[i];if(!x)return;
   db.client.company=x.company;db.client.contact=x.contact;db.client.name=x.name||x.contact.split(" ")[0];
   db.client.phone=x.phone;db.client.email=x.email;db.client.address=x.address||"";
-  db.project.name=x.project;
+  /* restore this client's own project/invoice/agreement/milestones snapshot, not just
+     the project name -- otherwise loading an old client kept whatever pricing/terms
+     happened to be active from the last client instead of their real numbers */
+  db.project=x.projectInfo?clone(x.projectInfo):db.project;
+  if(x.project)db.project.name=x.project;
+  if(x.invoice)db.invoice=clone(x.invoice);
+  if(x.agreement)db.agreement=clone(x.agreement);
+  if(x.milestones)db.milestones=clone(x.milestones);
   db.welcomeMsg="";persist();
   setHeaderIdentity();
   goPage("onboard");
@@ -684,6 +730,193 @@ function removeClient(i){
   if(!confirm("Remove "+x.company+" from your client history?"))return;
   cloudDeleteClient(x);
   db.clients.splice(i,1);clientsView.selected={};persist();render();toast("Client removed");
+}
+
+/* ==================================================================
+   CLIENT PROFILE — everything about one client, on one page
+   ================================================================== */
+function openProfile(i){
+  if(!db.clients[i])return;
+  profileIdx=i;
+  current="profile";
+  buildNav();
+  el("crumb").textContent=db.clients[i].company||"Client profile";
+  render();
+  el("scroll").scrollTop=0;
+}
+function infoLine(label,val){
+  return '<div class="info-line"><span class="k">'+esc(label)+'</span><span class="v">'+
+    (val?esc(val):'<span class="empty">—</span>')+'</span></div>';
+}
+function fileSize(n){
+  n=Number(n)||0;
+  if(n<1024)return n+" B";
+  if(n<1048576)return (n/1024).toFixed(1)+" KB";
+  return (n/1048576).toFixed(1)+" MB";
+}
+function profMileRow(m,idx){
+  return '<div class="dash-mile'+(m.done?" done":"")+'" onclick="toggleProfMilestone('+idx+')">'+
+    '<div class="dash-check">'+(m.done?ic("check"):"")+'</div>'+
+    '<div style="flex:1;min-width:0"><div class="nm">'+esc(m.name)+'</div><div class="ds">'+esc(m.desc)+'</div></div>'+
+    '<div class="due">'+(m.done?"Done":(m.due?"Due "+esc(m.due):"—"))+'</div></div>';
+}
+function toggleProfMilestone(idx){
+  var x=db.clients[profileIdx];if(!x||!x.milestones)return;
+  var m=x.milestones[idx];if(!m)return;
+  m.done=!m.done;persist();render();
+}
+function profTaskRow(tk,idx){
+  return '<div class="dash-mile'+(tk.done?" done":"")+'" onclick="toggleProfTask('+idx+')">'+
+    '<div class="dash-check">'+(tk.done?ic("check"):"")+'</div>'+
+    '<div style="flex:1;min-width:0"><div class="nm">'+esc(tk.text)+'</div></div>'+
+    '<button class="iconbtn" style="width:30px;height:30px" onclick="event.stopPropagation();removeProfTask('+idx+')" title="Remove">'+ic("trash")+'</button>'+
+  '</div>';
+}
+function addProfTask(){
+  var x=db.clients[profileIdx];if(!x)return;
+  var i=el("profTaskInput");if(!i||!i.value.trim())return;
+  if(!x.tasks)x.tasks=[];
+  x.tasks.push({text:i.value.trim(),done:false});
+  persist();render();
+}
+function toggleProfTask(idx){
+  var x=db.clients[profileIdx];if(!x||!x.tasks)return;
+  var tk=x.tasks[idx];if(!tk)return;
+  tk.done=!tk.done;persist();render();
+}
+function removeProfTask(idx){
+  var x=db.clients[profileIdx];if(!x||!x.tasks)return;
+  x.tasks.splice(idx,1);persist();render();
+}
+function addProfNote(){
+  var x=db.clients[profileIdx];if(!x)return;
+  var i=el("profNoteInput");if(!i||!i.value.trim())return;
+  if(!x.notes)x.notes=[];
+  x.notes.unshift({text:i.value.trim(),time:nowTime()+" · "+new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short"})});
+  persist();render();
+}
+function removeProfNote(idx){
+  var x=db.clients[profileIdx];if(!x||!x.notes)return;
+  x.notes.splice(idx,1);persist();render();
+}
+function profLogMsg(asMe){
+  var x=db.clients[profileIdx];if(!x)return;
+  var i=el("profMsgInput");if(!i||!i.value.trim())return;
+  if(!x.messages)x.messages=[];
+  x.messages.push({me:asMe,who:asMe?"You":(x.name||x.contact||"Client"),text:i.value.trim(),time:nowTime()});
+  persist();render();
+}
+function handleProfilePhoto(input){
+  var f=input.files&&input.files[0];if(!f)return;
+  if(f.size>1500000){toast("Image too large — please use one under 1.5MB");return;}
+  var reader=new FileReader();
+  reader.onload=function(){
+    var x=db.clients[profileIdx];if(!x)return;
+    x.photo=reader.result;persist();render();toast("Photo updated");
+  };
+  reader.readAsDataURL(f);
+}
+function handleProfileFile(input){
+  var f=input.files&&input.files[0];if(!f)return;
+  if(f.size>2000000){toast("File too large — please use one under 2MB");return;}
+  var reader=new FileReader();
+  reader.onload=function(){
+    var x=db.clients[profileIdx];if(!x)return;
+    if(!x.files)x.files=[];
+    x.files.push({name:f.name,size:f.size,type:f.type||"",dataUrl:reader.result,time:nowTime()});
+    persist();render();toast("File added");
+  };
+  reader.readAsDataURL(f);
+}
+function removeProfileFile(idx){
+  var x=db.clients[profileIdx];if(!x||!x.files)return;
+  x.files.splice(idx,1);persist();render();
+}
+function pgProfile(){
+  var x=db.clients[profileIdx];
+  if(!x){
+    return '<div class="pagehead"><div class="h1">Client not found</div><div class="sub">It may have been removed from Past Clients.</div></div>'+
+      '<button class="btn" onclick="goPage(\'clients\')">'+ic("chevronLeft")+'Back to Past Clients</button>';
+  }
+  var pi=x.projectInfo||{},inv=x.invoice||{items:[]},t=calcInvoiceTotals(inv);
+  var miles=x.milestones||[],doneMiles=miles.filter(function(m){return m.done;}).length;
+
+  var back='<button class="btn ghost sm" style="margin-bottom:14px" onclick="goPage(\'clients\')">'+ic("chevronLeft")+'Back to Past Clients</button>';
+
+  var hero='<div class="card pad profile-hero" style="margin-bottom:16px">'+
+    '<div class="profile-ava-wrap">'+
+      (x.photo?'<img class="profile-ava" src="'+x.photo+'">':'<div class="profile-ava profile-ava-fallback">'+initials(x.company)+'</div>')+
+      '<label class="profile-ava-edit" title="Change photo">'+ic("image")+'<input type="file" accept="image/*" style="display:none" onchange="handleProfilePhoto(this)"></label>'+
+    '</div>'+
+    '<div style="flex:1;min-width:220px">'+
+      '<div class="rowbetween" style="margin-bottom:2px;align-items:flex-start">'+
+        '<div class="sectitle" style="font-size:21px">'+esc(x.company)+'</div>'+
+        '<span class="pill '+(x.status==="Completed"?"ok":"acc")+'"><span class="d"></span>'+esc(x.status)+'</span>'+
+      '</div>'+
+      '<div class="sub" style="font-size:13px">'+esc(x.contact||x.name||"")+(x.email?" · "+esc(x.email):"")+(x.phone?" · "+esc(x.phone):"")+'</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">'+
+        '<button class="btn wa sm" onclick="waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')">'+WA_LOGO+'WhatsApp</button>'+
+        '<button class="btn sm" onclick="loadClient('+profileIdx+')">'+ic("upload")+'Load into portal</button>'+
+        '<button class="btn sm" onclick="loadClient('+profileIdx+');goPage(\'invoice\')">'+ic("card")+'Open invoice</button>'+
+        '<button class="btn sm" onclick="loadClient('+profileIdx+');goPage(\'agreement\')">'+ic("file")+'Open agreement</button>'+
+      '</div>'+
+    '</div></div>';
+
+  var infoRow='<div class="profile-row">'+
+    '<div class="card pad"><div class="sectitle" style="margin-bottom:12px">Company &amp; contact</div>'+
+      infoLine("Business name",x.company)+infoLine("Contact person",x.contact)+
+      infoLine("Email",x.email)+infoLine("Phone",x.phone)+infoLine("Address",x.address)+
+    '</div>'+
+    '<div class="card pad"><div class="sectitle" style="margin-bottom:12px">Project &amp; invoice</div>'+
+      infoLine("Project",pi.name)+infoLine("Status",pi.status)+infoLine("Est. completion",pi.estCompletion)+
+      infoLine("Invoice total",money(t.grand))+infoLine("Invoice status",inv.status)+
+    '</div></div>';
+
+  var timelineCard='<div class="card pad" style="margin-bottom:16px">'+
+    '<div class="rowbetween" style="margin-bottom:4px"><div class="sectitle">Timeline</div>'+
+      '<div class="cardlabel">'+doneMiles+' / '+miles.length+' complete</div></div>'+
+    '<div>'+miles.map(profMileRow).join("")+'</div></div>';
+
+  var commCard='<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:14px">Recent communication</div>'+
+    '<div class="thread">'+((x.messages&&x.messages.length)?x.messages.map(function(m){
+      return '<div class="msg '+(m.me?"me":"them")+'"><div class="who">'+esc(m.who)+'</div>'+esc(m.text)+'<div class="tm">'+esc(m.time)+'</div></div>';
+    }).join(""):'<div class="dash-empty">No messages logged yet.</div>')+'</div>'+
+    '<div class="composer"><input id="profMsgInput" placeholder="Log a message…" onkeydown="if(event.key===\'Enter\')profLogMsg(true)">'+
+      '<button class="btn sm" onclick="profLogMsg(false)">Log reply</button>'+
+      '<button class="btn pri sm" onclick="profLogMsg(true)">'+ic("upload")+'Log sent</button></div>'+
+  '</div>';
+
+  var notesCard='<div class="card pad"><div class="sectitle" style="margin-bottom:10px">Notes</div>'+
+    ((x.notes&&x.notes.length)?'<div>'+x.notes.map(function(n,idx){
+      return '<div class="note-item"><div class="note-tx">'+esc(n.text)+'</div>'+
+        '<div class="note-meta"><span>'+esc(n.time)+'</span>'+
+        '<button class="iconbtn" style="width:26px;height:26px" onclick="removeProfNote('+idx+')" title="Delete">'+ic("trash")+'</button></div></div>';
+    }).join(""):'<div class="dash-empty">No notes yet.</div>')+
+    '<div class="composer" style="margin-top:12px"><input id="profNoteInput" placeholder="Add a note…" onkeydown="if(event.key===\'Enter\')addProfNote()">'+
+      '<button class="btn sm" onclick="addProfNote()">'+ic("plus")+'Add</button></div>'+
+  '</div>';
+
+  var tasksCard='<div class="card pad"><div class="sectitle" style="margin-bottom:10px">Tasks</div>'+
+    ((x.tasks&&x.tasks.length)?'<div>'+x.tasks.map(profTaskRow).join("")+'</div>':'<div class="dash-empty">No tasks yet.</div>')+
+    '<div class="composer" style="margin-top:12px"><input id="profTaskInput" placeholder="Add a task…" onkeydown="if(event.key===\'Enter\')addProfTask()">'+
+      '<button class="btn sm" onclick="addProfTask()">'+ic("plus")+'Add</button></div>'+
+  '</div>';
+
+  var filesCard='<div class="card pad"><div class="rowbetween" style="margin-bottom:12px"><div class="sectitle">Files</div>'+
+    '<label class="btn sm" style="cursor:pointer">'+ic("upload")+'Upload<input type="file" style="display:none" onchange="handleProfileFile(this)"></label></div>'+
+    ((x.files&&x.files.length)?'<div class="profile-files">'+x.files.map(function(f,idx){
+      var isImg=(f.type||"").indexOf("image/")===0;
+      return '<div class="file-item">'+
+        '<button class="iconbtn" style="width:26px;height:26px" onclick="removeProfileFile('+idx+')" title="Remove">'+ic("trash")+'</button>'+
+        (isImg?'<img class="file-thumb" src="'+f.dataUrl+'">':'<div class="file-thumb file-thumb-ico">'+ic("doc2")+'</div>')+
+        '<div class="file-name" title="'+esc(f.name)+'">'+esc(f.name)+'</div>'+
+        '<div class="file-size">'+fileSize(f.size)+'</div>'+
+      '</div>';
+    }).join("")+'</div>':'<div class="dash-empty">No files attached yet.</div>')+
+  '</div>';
+
+  return '<div class="pagehead">'+back+'</div>'+hero+infoRow+timelineCard+commCard+
+    '<div class="profile-row">'+notesCard+tasksCard+'</div>'+filesCard;
 }
 
 function pgInvoice(){
@@ -1021,7 +1254,19 @@ function syncClients(force){
     return supa.from("portal_clients").select("*").order("created_at",{ascending:false});
   }).then(function(r){
     if(r.error)throw r.error;
-    db.clients=(r.data||[]).map(rowToClient);
+    /* cloud is the source of truth for the lightweight summary fields, but the rich
+       per-client extras (photo/timeline/notes/tasks/files/messages/documents) are
+       local-only and would otherwise be wiped out by this overwrite -- preserve them
+       by matching on company name (the same key the upsert/onConflict uses) */
+    var byCompany={};
+    db.clients.forEach(function(x){byCompany[x.company.toLowerCase()]=x;});
+    db.clients=(r.data||[]).map(function(row){
+      var fresh=rowToClient(row);
+      var prev=byCompany[fresh.company.toLowerCase()];
+      applyClientMeta(fresh,prev);
+      applyClientSnapshot(fresh,prev);
+      return fresh;
+    });
     persist();lastSync=Date.now();syncing=false;
     setCloudState("synced");
     if(current==="clients")render();

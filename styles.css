@@ -496,6 +496,43 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .wizline{flex:1;height:1.5px;background:var(--border);margin:0 14px;min-width:24px}
 @media(max-width:640px){.wizlabel{display:none}.wizline{margin:0 8px}}
 
+/* client profile */
+.profile-hero{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.profile-ava-wrap{position:relative;flex:none}
+.profile-ava{width:84px;height:84px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);display:block}
+.profile-ava-fallback{width:84px;height:84px;border-radius:50%;background:var(--glass-2);border:1.5px solid var(--acc);
+  display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;color:var(--acc)}
+.profile-ava-edit{position:absolute;bottom:-2px;right:-2px;width:28px;height:28px;border-radius:50%;background:var(--acc);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--bg);transition:transform .18s}
+.profile-ava-edit svg{width:14px;height:14px;stroke:var(--on-acc);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.profile-ava-edit:hover{transform:scale(1.08)}
+@media(prefers-reduced-motion:reduce){.profile-ava-edit{transition:none}.profile-ava-edit:hover{transform:none}}
+
+.profile-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.profile-row{grid-template-columns:1fr}}
+
+.info-line{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--hair);font-size:13.5px}
+.info-line:last-child{border-bottom:none}
+.info-line .k{color:var(--grey-2)}
+.info-line .v{font-weight:500;text-align:right}
+.info-line .v .empty{color:var(--grey-3);font-weight:400}
+
+.note-item{padding:12px 4px;border-bottom:1px solid var(--hair)}
+.note-item:last-child{border-bottom:none}
+.note-item .note-tx{font-size:13.5px;line-height:1.5}
+.note-item .note-meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.note-item .note-meta span{font-size:11.5px;color:var(--grey-2)}
+
+.profile-files{display:grid;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:12px}
+.file-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 10px 12px;
+  border:1px solid var(--hair);border-radius:14px;background:var(--glass);text-align:center}
+.file-item .iconbtn{position:absolute;top:6px;right:6px}
+.file-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--glass-2)}
+.file-thumb-ico{display:flex;align-items:center;justify-content:center}
+.file-thumb-ico svg{width:22px;height:22px;stroke:var(--acc);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.file-name{font-size:12px;font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-size{font-size:11px;color:var(--grey-2)}
+
 /* toast */
 .toasts{position:fixed;bottom:26px;right:26px;z-index:200;display:flex;flex-direction:column;gap:10px}
 .toast{display:flex;align-items:center;gap:11px;padding:13px 17px;border-radius:14px;background:var(--surface-toast);
