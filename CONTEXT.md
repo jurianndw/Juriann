@@ -4,38 +4,28 @@ Living doc for in-progress work. Update as state changes; safe to overwrite each
 
 ## Current task
 
-Executing `docs/superpowers/plans/2026-07-02-dashboard-real-data.md` via subagent-driven-development (fresh implementer subagent per task + task reviewer, then a final whole-branch review).
+No active task — the most recent thread was a sequence of design-system passes, each requested one at a time in the same conversation: dashboard content → app shell/layout → sidebar → cards → typography → color palette (light became default here) → buttons. All committed and pushed to `master` (`origin/master` on GitHub, `jurianndw/Juriann`), which auto-deploys to Cloudflare Pages.
 
-Spec: `docs/superpowers/specs/2026-07-02-dashboard-real-data-design.md`
-Plan: `docs/superpowers/plans/2026-07-02-dashboard-real-data.md`
-Progress ledger (authoritative on resume): `.superpowers/sdd/progress.md`
+## What's already done (design-system state)
 
-## What's already done
+See MEMORY.md's "Current visual design system" section for the durable summary — token conventions, what's deliberately excluded (print pages), and the FAB/ghost-button decisions. Don't re-derive these from scratch; read that section first.
 
-- Repo initialized with git specifically to support this workflow (was not a git repo before 2026-07-03).
-- Task 1 (commit `2eedfaf`): `logActivity`/`notifRow`/`renderNotif`, real notification dropdown replacing static fake HTML in `index.html`. Reviewed clean.
-- Task 2 (commit `3173e3e`): Dashboard rebuilt — removed fake "Upcoming meeting"/"Project health"/"Outstanding tasks"/"Unread messages", added real milestone checklist (`mileRow`/`toggleMilestone`), deleted dead `healthRow`. Reviewed clean.
-- Task 3 (commit `480d907`): real event logging wired into `onboardSave` (new client, invoice created) and `saveSettings` (project status changed, payment received). `upsertClient()` now returns whether the client was new. Reviewed clean.
-- Task 4 (commit `38b50be`): real agreement-signing state (`db.agreement.signed`/`signedDate`, "Mark as signed" button, `markSigned()`). Reviewed clean.
+Chronologically, the design passes were: dashboard content prioritization → new app shell (collapsible sidebar, wider content, one floating save bar) → sidebar visual redesign → card redesign (radius/shadow/hover) → typography (large page titles, minimal weights) → color palette (light theme now default, semantic colors softened, three latent dark-only-hardcoded-color bugs found and fixed: topbar, toast, plus a stale blue selection color and missing light-theme scrollbar) → buttons (primary/secondary/ghost/icon all real classes, consistent hover-lift + press-scale language, `.btn.gold` dead class removed).
 
-## Status: plan complete
+## Outstanding item (not yet done)
 
-All 5 tasks implemented, individually reviewed (all Approved, no Critical/Important issues), and verified end-to-end with a live interactive browser smoke test by the controller (milestone toggle → activity → notification chain, new-client/invoice/payment/status-change logging with dedup guards confirmed, real message send with no fake reply/badge, agreement sign toggle, zero leftover fake strings across all 7 pages, zero console errors). Final whole-branch review: **ready to merge**, no Critical/Important issues (two Minor notes, both already tolerated gracefully — see MEMORY.md).
+**Supabase RLS policy still needs a fix on the user's end** — writes to `portal_clients` fail for the `anon` role (confirmed via live test: `42501` RLS violation). Reads already work. Until the user applies the policy documented in MEMORY.md, new/edited clients save locally only and never reach the shared team list. This is on the user to do in the Supabase dashboard, not something we can fix from the client side.
 
 ## Next steps
 
-`superpowers:finishing-a-development-branch` — decide how this lands (this repo has no remote and everything happened directly on `master`; likely just "done," confirm with user).
-
-## Open questions
-
-None. One deviation from the original spec was flagged and accepted by the user: the spec's planned `read`-flag/unread-message-count mechanism was dropped in favor of a real "Messages sent" count, because removing the fake auto-reply (also approved) makes incoming messages — and therefore any unread count — permanently impossible to generate. See MEMORY.md.
+None pending — no open request right now. If the user continues the design-polish sequence (a natural next candidate would be forms/inputs, or the printable Invoice/Agreement documents if they ever want those touched), follow the same pattern each prior pass used: audit current state first, use CSS custom properties not raw hex, verify contrast numerically before picking colors, verify in-browser via computed styles (screenshots have been unreliable this session — a paint-clock stall in the preview tab, not a real bug), commit with a detailed message, push.
 
 ## Relevant files
 
-- `app.js` — all logic; every task in this plan touches only this file (plus `index.html` for Task 1's notif markup).
-- `index.html` — page structure; Task 1 replaced the static notification dropdown here.
-- `styles.css` — untouched by this plan; every new UI element deliberately reuses existing classes (`.mile/.mc/.mm/.mt/.md/.mr`, `.notif/.nh/.ni/.nd/.nt/.nw`, `.pill ok`, `.g3`).
+- `app.js` — all logic and HTML-string page templates.
+- `index.html` — static shell (sidebar/topbar markup, font links).
+- `styles.css` — all styling; `:root` (dark theme values) and `[data-theme="light"]` (light theme, now default) hold every color/shadow/surface token.
 
 ## Blockers
 
-None.
+None on the coding side. The Supabase RLS policy above is the only outstanding real-world action item, and it's the user's to apply.
