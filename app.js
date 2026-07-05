@@ -1,5 +1,6 @@
 "use strict";
 var KEY="arcen_portal_v1";
+var clientsView={sort:null,dir:1,filter:"all",q:"",page:1,selected:{},pageIndices:[]};
 
 /* ==================================================================
    SUPABASE — shared client database (Outreach Dashboard project)
@@ -465,46 +466,151 @@ function copyMsg(){
    ================================================================== */
 function pgClients(){
   if(cloudReady())syncClients();
-  var list=db.clients;
-  var total=list.reduce(function(a,x){return a+(Number(x.value)||0);},0);
+  var v=clientsView;
+  var total=db.clients.reduce(function(a,x){return a+(Number(x.value)||0);},0);
   var head='<div class="pagehead"><div class="rowbetween"><div><div class="h1">Past Clients</div>'+
-    '<div class="sub">'+list.length+' client'+(list.length===1?"":"s")+' · '+money(total)+' total project value'+(CLOUD_ON?' · shared team list':'')+'</div></div>'+
+    '<div class="sub">'+db.clients.length+' client'+(db.clients.length===1?"":"s")+' · '+money(total)+' total project value'+(CLOUD_ON?' · shared team list':'')+'</div></div>'+
     '<div style="display:flex;gap:8px">'+
     (CLOUD_ON?'<button class="btn sm" onclick="syncClients(true);toast(\'Syncing with the cloud…\')">'+ic("upload")+'Sync</button>':'')+
-    '<button class="btn pri sm" onclick="goPage(\'onboard\')">'+ic("plus")+'New client</button></div></div></div>'+
-    '<div class="search" style="margin:0 0 16px;max-width:340px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>'+
-    '<input id="clientSearch" placeholder="Search clients" oninput="filterClients(this.value)"></div>';
-  if(!list.length){
+    '<button class="btn pri sm" onclick="goPage(\'onboard\')">'+ic("plus")+'New client</button></div></div></div>';
+
+  if(!db.clients.length){
     return head+'<div class="card pad" style="text-align:center;padding:50px">'+
       '<div class="sectitle" style="margin-bottom:6px">No clients yet</div>'+
       '<div class="sub" style="max-width:380px;margin:0 auto 18px">Onboard your first client and they'+"'"+'ll appear here automatically with their project value and contact details.</div>'+
       '<button class="btn pri" onclick="goPage(\'onboard\')">'+ic("sparkle")+'Start onboarding</button></div>';
   }
-  return head+'<div id="clientList">'+list.map(clientRow).join("")+'</div>';
-}
-function clientRow(x,i){
-  return '<div class="card pad clientrow" data-name="'+esc((x.company+" "+x.contact).toLowerCase())+'">'+
-    '<div style="display:flex;align-items:center;gap:16px">'+
-      '<div class="uava" style="width:42px;height:42px;font-size:14px;flex:none">'+initials(x.company)+'</div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
-          '<div style="font-size:15.5px;font-weight:600">'+esc(x.company)+'</div>'+
-          '<span class="pill '+(x.status==="Completed"?"ok":"acc")+'"><span class="d"></span>'+esc(x.status)+'</span>'+
-        '</div>'+
-        '<div style="font-size:12.5px;color:var(--grey-2);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+
-          esc(x.contact)+' · '+esc(x.project)+' · '+money(x.value)+' · since '+esc(x.date)+'</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:8px;flex:none">'+
-        '<button class="iconbtn" title="WhatsApp" onclick="waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')" style="color:#25D366">'+WA_LOGO+'</button>'+
-        '<button class="iconbtn" title="Load into portal" onclick="loadClient('+i+')">'+ic("upload")+'</button>'+
-        '<button class="iconbtn" title="Remove" onclick="removeClient('+i+')">'+ic("trash")+'</button>'+
-      '</div>'+
+
+  var searched=db.clients.map(function(x,i){return {x:x,i:i};});
+  if(v.q){
+    var q=v.q.toLowerCase();
+    searched=searched.filter(function(r){return (r.x.company+" "+r.x.contact).toLowerCase().indexOf(q)>=0;});
+  }
+  var countAll=searched.length;
+  var countActive=searched.filter(function(r){return r.x.status!=="Completed";}).length;
+  var countCompleted=searched.filter(function(r){return r.x.status==="Completed";}).length;
+
+  var rows=searched;
+  if(v.filter==="active")rows=rows.filter(function(r){return r.x.status!=="Completed";});
+  else if(v.filter==="completed")rows=rows.filter(function(r){return r.x.status==="Completed";});
+
+  if(v.sort){
+    rows=rows.slice().sort(function(a,b){
+      var av=sortVal(a.x,v.sort),bv=sortVal(b.x,v.sort);
+      if(av<bv)return -1*v.dir;if(av>bv)return 1*v.dir;return 0;
+    });
+  }
+
+  var pageSize=10;
+  var totalPages=Math.max(1,Math.ceil(rows.length/pageSize));
+  if(v.page>totalPages)v.page=totalPages;
+  if(v.page<1)v.page=1;
+  var pageRows=rows.slice((v.page-1)*pageSize,v.page*pageSize);
+  v.pageIndices=pageRows.map(function(r){return r.i;});
+
+  var selCount=Object.keys(v.selected).filter(function(k){return v.selected[k];}).length;
+  var allOnPageSelected=pageRows.length>0&&pageRows.every(function(r){return v.selected[r.i];});
+
+  var toolbar='<div class="tbl-toolbar">'+
+    '<div class="search" style="margin:0;max-width:300px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>'+
+    '<input id="clientSearch" placeholder="Search clients" value="'+esc(v.q)+'" oninput="searchClients(this.value)"></div>'+
+    '<div class="tbl-filters">'+
+      filterTab("all","All",countAll)+filterTab("active","Active",countActive)+filterTab("completed","Completed",countCompleted)+
     '</div></div>';
+
+  var bulkBar=selCount?'<div class="tbl-bulk"><div>'+selCount+' selected</div><div style="display:flex;gap:8px">'+
+      '<button class="btn sm" onclick="bulkMarkCompleted()">'+ic("check")+'Mark completed</button>'+
+      '<button class="btn sm" onclick="bulkRemoveClients()">'+ic("trash")+'Remove</button>'+
+      '<button class="btn ghost sm" onclick="clearClientSelection()">Cancel</button>'+
+    '</div></div>':"";
+
+  var table='<div class="tbl-wrap">'+
+    '<div class="tbl-head">'+
+      '<div class="tbl-check"><input type="checkbox" '+(allOnPageSelected?"checked":"")+' onchange="toggleSelectAllClients(this.checked)"></div>'+
+      sortHead("company","Company")+sortHead("project","Project")+sortHead("value","Value")+sortHead("status","Status")+sortHead("date","Since")+
+      '<div></div>'+
+    '</div>'+
+    pageRows.map(clientRow).join("")+
+  '</div>';
+
+  var pager=totalPages>1?'<div class="tbl-pager">'+
+    '<button class="btn sm" '+(v.page<=1?"disabled":"")+' onclick="changeClientsPage(-1)">Prev</button>'+
+    '<span>Page '+v.page+' of '+totalPages+'</span>'+
+    '<button class="btn sm" '+(v.page>=totalPages?"disabled":"")+' onclick="changeClientsPage(1)">Next</button>'+
+  '</div>':"";
+
+  return head+toolbar+bulkBar+table+pager;
 }
-function filterClients(q){
-  q=(q||"").toLowerCase();
-  document.querySelectorAll(".clientrow").forEach(function(r){
-    r.style.display=(!q||r.getAttribute("data-name").indexOf(q)>=0)?"flex":"none";});
+function sortVal(x,key){
+  if(key==="value")return Number(x.value)||0;
+  if(key==="date"){var t=new Date(x.date).getTime();return isNaN(t)?0:t;}
+  return String(x[key]||"").toLowerCase();
+}
+function sortHead(key,label){
+  var on=clientsView.sort===key;
+  return '<div class="tbl-th'+(on?" on":"")+'" onclick="sortClients(\''+key+'\')">'+esc(label)+(on?(clientsView.dir===1?" ↑":" ↓"):"")+'</div>';
+}
+function filterTab(key,label,count){
+  return '<button class="tbl-tab'+(clientsView.filter===key?" on":"")+'" onclick="setClientFilter(\''+key+'\')">'+esc(label)+' <span>'+count+'</span></button>';
+}
+function searchClients(q){clientsView.q=q;clientsView.page=1;render();}
+function setClientFilter(f){clientsView.filter=f;clientsView.page=1;render();}
+function sortClients(key){
+  if(clientsView.sort===key)clientsView.dir=-clientsView.dir;
+  else{clientsView.sort=key;clientsView.dir=1;}
+  render();
+}
+function changeClientsPage(delta){clientsView.page+=delta;render();}
+function toggleClientSelect(i){clientsView.selected[i]=!clientsView.selected[i];render();}
+function toggleSelectAllClients(checked){
+  clientsView.pageIndices.forEach(function(i){clientsView.selected[i]=checked;});
+  render();
+}
+function clearClientSelection(){clientsView.selected={};render();}
+function bulkMarkCompleted(){
+  var idxs=Object.keys(clientsView.selected).filter(function(k){return clientsView.selected[k];}).map(Number);
+  if(!idxs.length)return;
+  idxs.forEach(function(i){
+    var x=db.clients[i];if(!x)return;
+    x.status="Completed";
+    cloudSaveClient(x);
+  });
+  clientsView.selected={};
+  persist();render();toast(idxs.length+" client"+(idxs.length>1?"s":"")+" marked completed");
+}
+function bulkRemoveClients(){
+  var idxs=Object.keys(clientsView.selected).filter(function(k){return clientsView.selected[k];}).map(Number);
+  if(!idxs.length)return;
+  if(!confirm("Remove "+idxs.length+" client"+(idxs.length>1?"s":"")+" from your client history?"))return;
+  idxs.sort(function(a,b){return b-a;});
+  idxs.forEach(function(i){
+    var x=db.clients[i];if(!x)return;
+    cloudDeleteClient(x);
+    db.clients.splice(i,1);
+  });
+  clientsView.selected={};
+  persist();render();toast("Clients removed");
+}
+function clientRow(row){
+  var x=row.x,i=row.i;
+  var checked=!!clientsView.selected[i];
+  return '<div class="tbl-row'+(checked?" sel":"")+'" onclick="toggleClientSelect('+i+')">'+
+    '<div class="tbl-check"><input type="checkbox" '+(checked?"checked":"")+' onclick="event.stopPropagation()" onchange="toggleClientSelect('+i+')"></div>'+
+    '<div style="display:flex;align-items:center;gap:12px;min-width:0">'+
+      '<div class="uava" style="width:34px;height:34px;font-size:12.5px;flex:none">'+initials(x.company)+'</div>'+
+      '<div style="min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(x.company)+'</div>'+
+        '<div style="font-size:12px;color:var(--grey-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(x.contact)+'</div></div>'+
+    '</div>'+
+    '<div class="tbl-cell-muted">'+esc(x.project)+'</div>'+
+    '<div style="font-size:13.5px;font-weight:500;font-variant-numeric:tabular-nums">'+money(x.value)+'</div>'+
+    '<div><span class="pill '+(x.status==="Completed"?"ok":"acc")+'"><span class="d"></span>'+esc(x.status)+'</span></div>'+
+    '<div class="tbl-cell-muted">'+esc(x.date)+'</div>'+
+    '<div style="display:flex;gap:6px;justify-content:flex-end" onclick="event.stopPropagation()">'+
+      '<button class="iconbtn" title="WhatsApp" onclick="waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')" style="width:30px;height:30px;color:#25D366">'+WA_LOGO+'</button>'+
+      '<button class="iconbtn" title="Load into portal" onclick="loadClient('+i+')" style="width:30px;height:30px">'+ic("upload")+'</button>'+
+      '<button class="iconbtn" title="Remove" onclick="removeClient('+i+')" style="width:30px;height:30px">'+ic("trash")+'</button>'+
+    '</div>'+
+  '</div>';
 }
 function loadClient(i){
   var x=db.clients[i];if(!x)return;
@@ -520,7 +626,7 @@ function removeClient(i){
   var x=db.clients[i];if(!x)return;
   if(!confirm("Remove "+x.company+" from your client history?"))return;
   cloudDeleteClient(x);
-  db.clients.splice(i,1);persist();render();toast("Client removed");
+  db.clients.splice(i,1);clientsView.selected={};persist();render();toast("Client removed");
 }
 
 function pgInvoice(){
