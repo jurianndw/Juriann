@@ -115,6 +115,24 @@ function el(id){return document.getElementById(id);}
 function ic(name,cls){return '<svg viewBox="0 0 24 24" '+(cls?'class="'+cls+'"':'')+'>'+(ICONS[name]||"")+'</svg>';}
 function initials(n){var p=String(n||"").trim().split(/\s+/).map(function(w){return w[0]||"";});return (p.join("").toUpperCase().slice(0,2))||"?";}
 
+/* ---------- empty states ---------- */
+/* full-page empty state: icon badge + title + helpful text + optional CTA */
+function emptyState(icon,title,text,ctaInner,ctaAction){
+  return '<div class="empty-state">'+
+    '<div class="empty-ico">'+ic(icon)+'</div>'+
+    '<div class="empty-title">'+esc(title)+'</div>'+
+    '<div class="empty-text">'+esc(text)+'</div>'+
+    (ctaInner?'<button class="btn pri" onclick="'+ctaAction+'">'+ctaInner+'</button>':'')+
+  '</div>';
+}
+/* compact, card-embedded empty state: small icon + text, no CTA (the composer/action
+   is already visible right next to it) -- tone "ok" for a reassuring "nothing to do"
+   state rather than a "nothing here yet" one */
+function emptyMini(icon,text,tone){
+  return '<div class="empty-mini'+(tone==="ok"?" ok":"")+'"><div class="empty-mini-ico">'+ic(icon)+'</div>'+
+    '<div class="empty-mini-text">'+esc(text)+'</div></div>';
+}
+
 function persist(){
   try{localStorage.setItem(KEY,JSON.stringify(db));}
   catch(e){if(typeof toast==="function")toast("Storage full — this change may not have saved. Remove a file or photo to free up space.");}
@@ -265,7 +283,7 @@ function pgDashboard(){
     '<div class="dash-sec">'+
       '<div class="dash-sec-head"><div class="dash-sec-title">Recent activity</div></div>'+
       (db.activity.length?'<div>'+db.activity.map(actRow).join("")+'</div>'
-        :'<div class="dash-empty">Nothing yet. Saving a client, sending an invoice, or completing a milestone shows up here.</div>')+
+        :emptyMini("clock","Nothing yet. Saving a client, sending an invoice, or completing a milestone shows up here."))+
     '</div></div>';
 }
 function attentionSec(unpaid){
@@ -276,7 +294,7 @@ function attentionSec(unpaid){
       (unpaid.length?'<div class="dash-sec-note">'+unpaid.length+' outstanding</div>':"")+'</div>'+
     (shown.length?'<div>'+shown.map(attnRow).join("")+'</div>'+
         (extra>0?'<div class="dash-more" onclick="goPage(\'clients\')">+'+extra+' more in Past Clients</div>':"")
-      :'<div class="dash-empty">Nothing outstanding — every client is settled up.</div>')+
+      :emptyMini("check","Nothing outstanding — every client is settled up.","ok"))+
   '</div>';
 }
 function attnRow(row){
@@ -589,10 +607,9 @@ function pgClients(){
     '<button class="btn pri sm" onclick="goPage(\'onboard\')">'+ic("plus")+'New client</button></div></div></div>';
 
   if(!db.clients.length){
-    return head+'<div class="card pad" style="text-align:center;padding:50px">'+
-      '<div class="sectitle" style="margin-bottom:6px">No clients yet</div>'+
-      '<div class="sub" style="max-width:380px;margin:0 auto 18px">Onboard your first client and they'+"'"+'ll appear here automatically with their project value and contact details.</div>'+
-      '<button class="btn pri" onclick="goPage(\'onboard\')">'+ic("sparkle")+'Start onboarding</button></div>';
+    return head+'<div class="card pad">'+emptyState("users","No clients yet",
+      "Onboard your first client and they'll appear here automatically with their project value and contact details.",
+      ic("sparkle")+"Start onboarding","goPage('onboard')")+'</div>';
   }
 
   var searched=db.clients.map(function(x,i){return {x:x,i:i};});
@@ -943,7 +960,7 @@ function pgProfile(){
   var commCard='<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:14px">Recent communication</div>'+
     '<div class="thread">'+((x.messages&&x.messages.length)?x.messages.map(function(m){
       return '<div class="msg '+(m.me?"me":"them")+'"><div class="who">'+esc(m.who)+'</div>'+esc(m.text)+'<div class="tm">'+esc(m.time)+'</div></div>';
-    }).join(""):'<div class="dash-empty">No messages logged yet.</div>')+'</div>'+
+    }).join(""):emptyMini("chat","No messages logged yet."))+'</div>'+
     '<div class="composer"><input id="profMsgInput" placeholder="Log a message…" onkeydown="if(event.key===\'Enter\')profLogMsg(true)">'+
       '<button class="btn sm" onclick="profLogMsg(false)">Log reply</button>'+
       '<button class="btn pri sm" onclick="profLogMsg(true)">'+ic("upload")+'Log sent</button></div>'+
@@ -954,20 +971,20 @@ function pgProfile(){
       return '<div class="note-item"><div class="note-tx">'+esc(n.text)+'</div>'+
         '<div class="note-meta"><span>'+esc(n.time)+'</span>'+
         '<button class="iconbtn" style="width:26px;height:26px" onclick="removeProfNote('+idx+')" title="Delete">'+ic("trash")+'</button></div></div>';
-    }).join(""):'<div class="dash-empty">No notes yet.</div>')+
+    }).join(""):emptyMini("clipboard","No notes yet."))+
     '<div class="composer" style="margin-top:12px"><input id="profNoteInput" placeholder="Add a note…" onkeydown="if(event.key===\'Enter\')addProfNote()">'+
       '<button class="btn sm" onclick="addProfNote()">'+ic("plus")+'Add</button></div>'+
   '</div>';
 
   var tasksCard='<div class="card pad"><div class="sectitle" style="margin-bottom:10px">Tasks</div>'+
-    ((x.tasks&&x.tasks.length)?'<div id="profTasksList">'+x.tasks.map(profTaskRow).join("")+'</div>':'<div class="dash-empty">No tasks yet.</div>')+
+    ((x.tasks&&x.tasks.length)?'<div id="profTasksList">'+x.tasks.map(profTaskRow).join("")+'</div>':emptyMini("plus","No tasks yet."))+
     '<div class="composer" style="margin-top:12px"><input id="profTaskInput" placeholder="Add a task…" onkeydown="if(event.key===\'Enter\')addProfTask()">'+
       '<button class="btn sm" onclick="addProfTask()">'+ic("plus")+'Add</button></div>'+
   '</div>';
 
   var activityCard='<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:10px">Activity feed</div>'+
     ((x.activity&&x.activity.length)?'<div>'+x.activity.map(profActRow).join("")+'</div>'
-      :'<div class="dash-empty">Nothing yet — updates to this client'+"'"+'s timeline, tasks, notes and files show up here.</div>')+
+      :emptyMini("route","Nothing yet — updates to this client"+"'"+"s timeline, tasks, notes and files show up here."))+
   '</div>';
 
   var filesCard='<div class="card pad"><div class="rowbetween" style="margin-bottom:12px"><div class="sectitle">Files</div>'+
@@ -980,7 +997,7 @@ function pgProfile(){
         '<div class="file-name" title="'+esc(f.name)+'">'+esc(f.name)+'</div>'+
         '<div class="file-size">'+fileSize(f.size)+'</div>'+
       '</div>';
-    }).join("")+'</div>':'<div class="dash-empty">No files attached yet.</div>')+
+    }).join("")+'</div>':emptyMini("folder","No files attached yet."))+
   '</div>';
 
   return '<div class="pagehead">'+back+'</div>'+hero+infoRow+timelineCard+commCard+
@@ -1032,10 +1049,9 @@ function pgInvoiceList(){
     '<button class="btn pri sm" onclick="goPage(\'onboard\')">'+ic("plus")+'New client</button></div></div>';
 
   if(!countAll){
-    return head+'<div class="card pad" style="text-align:center;padding:50px">'+
-      '<div class="sectitle" style="margin-bottom:6px">No invoices yet</div>'+
-      '<div class="sub" style="max-width:380px;margin:0 auto 18px">Onboard your first client and their invoice appears here automatically.</div>'+
-      '<button class="btn pri" onclick="goPage(\'onboard\')">'+ic("sparkle")+'Start onboarding</button></div>';
+    return head+'<div class="card pad">'+emptyState("card","No invoices yet",
+      "Onboard your first client and their invoice appears here automatically.",
+      ic("sparkle")+"Start onboarding","goPage('onboard')")+'</div>';
   }
 
   if(v.filter==="unpaid")rows=rows.filter(function(r){return (r.x.invoice&&r.x.invoice.status)!=="PAID";});
@@ -1196,11 +1212,13 @@ function markSigned(){
 }
 
 function pgMessages(){
-  return '<div class="pagehead"><div class="h1">Messages</div><div class="sub">Direct line to your project team.</div></div>'+
-    '<div class="card pad">'+
-      '<div class="thread" id="thread">'+db.messages.map(function(m){
+  var body=db.messages.length
+    ?'<div class="thread" id="thread">'+db.messages.map(function(m){
         return '<div class="msg '+(m.me?"me":"them")+'"><div class="who">'+esc(m.who)+'</div>'+esc(m.text)+'<div class="tm">'+esc(m.time)+'</div></div>';
-      }).join("")+'</div>'+
+      }).join("")+'</div>'
+    :emptyState("chat","No messages yet","Write something below and it'll show up here — this is the outbound log of what you've sent to the currently loaded client.",null,null);
+  return '<div class="pagehead"><div class="h1">Messages</div><div class="sub">Direct line to your project team.</div></div>'+
+    '<div class="card pad">'+body+
       '<div class="composer"><input id="msgInput" placeholder="Write a message…" onkeydown="if(event.key===\'Enter\')sendMsg()">'+
         '<button class="btn pri" onclick="sendMsg()">'+ic("upload").replace("width:16px","")+'Send</button></div>'+
     '</div>';

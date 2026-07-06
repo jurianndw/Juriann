@@ -394,7 +394,6 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .dash-act .ico svg{width:15px;height:15px;stroke:var(--grey);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .dash-act .tx{font-size:14px;line-height:1.4}
 .dash-act .tm{font-size:12px;color:var(--grey-2);margin-top:3px;font-variant-numeric:tabular-nums}
-.dash-empty{color:var(--grey-2);font-size:14px;line-height:1.6;padding:18px 4px;max-width:46ch}
 
 .dash>*{animation:dashRise .55s var(--ease) both}
 .dash>*:nth-child(1){animation-delay:.03s}
@@ -535,6 +534,21 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:var(--acc);flex:none}
 .assignee-chip.on{border-color:var(--acc);background:var(--acc-soft);color:var(--acc)}
 .assignee-chip.on .ava{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
+
+/* empty states */
+.empty-state{text-align:center;padding:52px 28px;display:flex;flex-direction:column;align-items:center}
+.empty-ico{width:64px;height:64px;border-radius:50%;background:var(--acc-soft);display:flex;align-items:center;
+  justify-content:center;margin-bottom:16px}
+.empty-ico svg{width:27px;height:27px;stroke:var(--acc);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.empty-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.empty-text{font-size:13.5px;color:var(--grey-2);line-height:1.6;max-width:360px;margin-bottom:20px}
+
+.empty-mini{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:32px 16px}
+.empty-mini-ico{width:42px;height:42px;border-radius:50%;background:var(--glass-2);display:flex;align-items:center;justify-content:center;flex:none}
+.empty-mini-ico svg{width:18px;height:18px;stroke:var(--grey-2);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.empty-mini-text{font-size:13px;color:var(--grey-2);line-height:1.55;max-width:300px}
+.empty-mini.ok .empty-mini-ico{background:var(--ok-soft)}
+.empty-mini.ok .empty-mini-ico svg{stroke:var(--ok)}
 
 /* loading skeleton -- only ever shown during the one genuine async wait in this
    app (the first cloud fetch before any local cache exists) */
