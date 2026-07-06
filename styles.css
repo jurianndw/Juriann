@@ -103,6 +103,16 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .app.sidebar-collapsed .navitem.on::before{left:0}
 .app.sidebar-collapsed .sidefoot{padding:14px 10px}
 .app.sidebar-collapsed .usercard{justify-content:center;padding:8px}
+/* .nav-backdrop must always be taken out of normal flow, not just below the
+   900px breakpoint -- .app is a 2-column CSS grid (sidebar + main) and this
+   div is a 3rd DOM child inside it. Scoping position:fixed to only the mobile
+   media query left it position:static (a real, auto-placed 3rd grid item) at
+   every other width, which forced a 2nd implicit grid row and broke the whole
+   desktop layout. Keeping this unconditional is what actually fixes that. */
+.nav-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:250;opacity:0;pointer-events:none;
+  transition:opacity .32s var(--ease)}
+@media(prefers-reduced-motion:reduce){.nav-backdrop{transition:none}}
+
 /* below 900px the sidebar becomes a true off-canvas drawer (full content, not a
    condensed rail) instead of a permanently-visible icon strip -- toggled via the
    same topbar button that collapses it on desktop (see toggleSidebar()) */
@@ -111,8 +121,6 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   .sidebar{position:fixed;top:0;left:0;height:100vh;width:266px;max-width:82vw;z-index:260;
     transform:translateX(-100%);transition:transform .32s var(--ease);box-shadow:var(--sh)}
   .app.nav-open .sidebar{transform:translateX(0)}
-  .nav-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:250;opacity:0;pointer-events:none;
-    transition:opacity .32s var(--ease)}
   .app.nav-open .nav-backdrop{opacity:1;pointer-events:auto}
   /* the drawer always shows full content -- the desktop rail-collapse preference
      (.sidebar-collapsed, a persisted per-device setting) shouldn't bleed into it */
