@@ -508,8 +508,22 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .profile-ava-edit:hover{transform:scale(1.08)}
 @media(prefers-reduced-motion:reduce){.profile-ava-edit{transition:none}.profile-ava-edit:hover{transform:none}}
 
-.profile-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.profile-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start}
 @media(max-width:900px){.profile-row{grid-template-columns:1fr}}
+
+.progress-bar{height:9px;border-radius:999px;background:var(--ring-track);overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:999px;background:var(--grad);transition:width .5s var(--ease)}
+@media(prefers-reduced-motion:reduce){.progress-bar-fill{transition:none}}
+
+.assignee-row{display:flex;flex-wrap:wrap;gap:8px}
+.assignee-chip{display:flex;align-items:center;gap:7px;padding:5px 12px 5px 5px;border-radius:999px;
+  border:1.5px solid var(--border);background:var(--glass);cursor:pointer;font-size:12.5px;font-weight:500;
+  color:var(--grey-2);transition:background .18s,border-color .18s,color .18s}
+.assignee-chip:hover{border-color:var(--border-2)}
+.assignee-chip .ava{width:22px;height:22px;border-radius:50%;background:var(--glass-2);border:1.5px solid var(--acc);
+  display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:var(--acc);flex:none}
+.assignee-chip.on{border-color:var(--acc);background:var(--acc-soft);color:var(--acc)}
+.assignee-chip.on .ava{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
 
 .info-line{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--hair);font-size:13.5px}
 .info-line:last-child{border-bottom:none}

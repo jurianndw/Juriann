@@ -3,6 +3,7 @@ var KEY="arcen_portal_v1";
 var clientsView={sort:null,dir:1,filter:"all",q:"",page:1,selected:{},pageIndices:[]};
 var onboardStep=1;
 var profileIdx=-1;
+var TEAM=["Juriann","Tiaan","Ruben"];
 
 /* ==================================================================
    SUPABASE — shared client database (Outreach Dashboard project)
@@ -506,6 +507,8 @@ function applyClientMeta(rec,src){
   rec.tasks=src.tasks?clone(src.tasks):[];
   rec.files=src.files?clone(src.files):[];
   rec.messages=src.messages?clone(src.messages):[];
+  rec.assignedTo=src.assignedTo?clone(src.assignedTo):[];
+  rec.activity=src.activity?clone(src.activity):[];
 }
 function applyClientSnapshot(rec,src){
   src=src||{};
@@ -763,7 +766,27 @@ function profMileRow(m,idx){
 function toggleProfMilestone(idx){
   var x=db.clients[profileIdx];if(!x||!x.milestones)return;
   var m=x.milestones[idx];if(!m)return;
-  m.done=!m.done;persist();render();
+  m.done=!m.done;
+  if(m.done)logProfActivity(x,"check","Milestone complete: "+m.name);
+  persist();render();
+}
+function logProfActivity(x,icon,text){
+  if(!x.activity)x.activity=[];
+  x.activity.unshift({icon:icon,text:text,
+    when:new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short"})+" · "+nowTime()});
+  if(x.activity.length>20)x.activity.length=20;
+}
+function profActRow(a){
+  return '<div class="dash-act"><div class="ico">'+ic(a.icon)+'</div>'+
+    '<div style="flex:1"><div class="tx">'+esc(a.text)+'</div><div class="tm">'+esc(a.when)+'</div></div></div>';
+}
+function toggleProfAssignee(name){
+  var x=db.clients[profileIdx];if(!x)return;
+  if(!x.assignedTo)x.assignedTo=[];
+  var idx=x.assignedTo.indexOf(name);
+  if(idx>=0){x.assignedTo.splice(idx,1);logProfActivity(x,"users","Unassigned "+name);}
+  else{x.assignedTo.push(name);logProfActivity(x,"users","Assigned "+name);}
+  persist();render();
 }
 function profTaskRow(tk,idx){
   return '<div class="dash-mile'+(tk.done?" done":"")+'" onclick="toggleProfTask('+idx+')">'+
@@ -777,12 +800,15 @@ function addProfTask(){
   var i=el("profTaskInput");if(!i||!i.value.trim())return;
   if(!x.tasks)x.tasks=[];
   x.tasks.push({text:i.value.trim(),done:false});
+  logProfActivity(x,"plus","Task added: "+i.value.trim());
   persist();render();
 }
 function toggleProfTask(idx){
   var x=db.clients[profileIdx];if(!x||!x.tasks)return;
   var tk=x.tasks[idx];if(!tk)return;
-  tk.done=!tk.done;persist();render();
+  tk.done=!tk.done;
+  if(tk.done)logProfActivity(x,"check","Task completed: "+tk.text);
+  persist();render();
 }
 function removeProfTask(idx){
   var x=db.clients[profileIdx];if(!x||!x.tasks)return;
@@ -793,6 +819,7 @@ function addProfNote(){
   var i=el("profNoteInput");if(!i||!i.value.trim())return;
   if(!x.notes)x.notes=[];
   x.notes.unshift({text:i.value.trim(),time:nowTime()+" · "+new Date().toLocaleDateString("en-ZA",{day:"2-digit",month:"short"})});
+  logProfActivity(x,"clipboard","Note added");
   persist();render();
 }
 function removeProfNote(idx){
@@ -812,7 +839,7 @@ function handleProfilePhoto(input){
   var reader=new FileReader();
   reader.onload=function(){
     var x=db.clients[profileIdx];if(!x)return;
-    x.photo=reader.result;persist();render();toast("Photo updated");
+    x.photo=reader.result;logProfActivity(x,"image","Photo updated");persist();render();toast("Photo updated");
   };
   reader.readAsDataURL(f);
 }
@@ -824,6 +851,7 @@ function handleProfileFile(input){
     var x=db.clients[profileIdx];if(!x)return;
     if(!x.files)x.files=[];
     x.files.push({name:f.name,size:f.size,type:f.type||"",dataUrl:reader.result,time:nowTime()});
+    logProfActivity(x,"upload","File added: "+f.name);
     persist();render();toast("File added");
   };
   reader.readAsDataURL(f);
@@ -840,6 +868,8 @@ function pgProfile(){
   }
   var pi=x.projectInfo||{},inv=x.invoice||{items:[]},t=calcInvoiceTotals(inv);
   var miles=x.milestones||[],doneMiles=miles.filter(function(m){return m.done;}).length;
+  var pct=miles.length?Math.round(doneMiles/miles.length*100):0;
+  var assigned=x.assignedTo||[];
 
   var back='<button class="btn ghost sm" style="margin-bottom:14px" onclick="goPage(\'clients\')">'+ic("chevronLeft")+'Back to Past Clients</button>';
 
@@ -867,14 +897,28 @@ function pgProfile(){
       infoLine("Business name",x.company)+infoLine("Contact person",x.contact)+
       infoLine("Email",x.email)+infoLine("Phone",x.phone)+infoLine("Address",x.address)+
     '</div>'+
-    '<div class="card pad"><div class="sectitle" style="margin-bottom:12px">Project &amp; invoice</div>'+
-      infoLine("Project",pi.name)+infoLine("Status",pi.status)+infoLine("Est. completion",pi.estCompletion)+
-      infoLine("Invoice total",money(t.grand))+infoLine("Invoice status",inv.status)+
+    '<div class="card pad">'+
+      '<div class="rowbetween" style="margin-bottom:14px;align-items:flex-start">'+
+        '<div class="sectitle">Project</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+
+          '<span class="pill '+(pct===100?"ok":"acc")+'"><span class="d"></span>'+esc(pi.status||"—")+'</span>'+
+          '<span class="pill '+(inv.status==="PAID"?"ok":"warn")+'"><span class="d"></span>'+esc(inv.status||"UNPAID")+'</span>'+
+        '</div></div>'+
+      '<div class="rowbetween" style="margin-bottom:6px"><span class="cardlabel">Completion</span>'+
+        '<span style="font-size:13px;font-weight:600;color:var(--white)">'+pct+'%</span></div>'+
+      '<div class="progress-bar" style="margin-bottom:16px"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>'+
+      infoLine("Project name",pi.name)+infoLine("Est. completion",pi.estCompletion)+infoLine("Invoice total",money(t.grand))+
+      '<div style="margin-top:16px"><div class="cardlabel" style="margin-bottom:9px">Assigned</div>'+
+        '<div class="assignee-row">'+TEAM.map(function(n){
+          var on=assigned.indexOf(n)>=0;
+          return '<div class="assignee-chip'+(on?" on":"")+'" onclick="toggleProfAssignee(\''+n+'\')"><span class="ava">'+initials(n)+'</span>'+esc(n)+'</div>';
+        }).join("")+'</div></div>'+
     '</div></div>';
 
   var timelineCard='<div class="card pad" style="margin-bottom:16px">'+
-    '<div class="rowbetween" style="margin-bottom:4px"><div class="sectitle">Timeline</div>'+
-      '<div class="cardlabel">'+doneMiles+' / '+miles.length+' complete</div></div>'+
+    '<div class="rowbetween" style="margin-bottom:10px"><div class="sectitle">Timeline</div>'+
+      '<div class="cardlabel">'+doneMiles+' / '+miles.length+' · '+pct+'%</div></div>'+
+    '<div class="progress-bar" style="margin-bottom:14px"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>'+
     '<div>'+miles.map(profMileRow).join("")+'</div></div>';
 
   var commCard='<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:14px">Recent communication</div>'+
@@ -902,6 +946,11 @@ function pgProfile(){
       '<button class="btn sm" onclick="addProfTask()">'+ic("plus")+'Add</button></div>'+
   '</div>';
 
+  var activityCard='<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:10px">Activity feed</div>'+
+    ((x.activity&&x.activity.length)?'<div>'+x.activity.map(profActRow).join("")+'</div>'
+      :'<div class="dash-empty">Nothing yet — updates to this client'+"'"+'s timeline, tasks, notes and files show up here.</div>')+
+  '</div>';
+
   var filesCard='<div class="card pad"><div class="rowbetween" style="margin-bottom:12px"><div class="sectitle">Files</div>'+
     '<label class="btn sm" style="cursor:pointer">'+ic("upload")+'Upload<input type="file" style="display:none" onchange="handleProfileFile(this)"></label></div>'+
     ((x.files&&x.files.length)?'<div class="profile-files">'+x.files.map(function(f,idx){
@@ -916,7 +965,7 @@ function pgProfile(){
   '</div>';
 
   return '<div class="pagehead">'+back+'</div>'+hero+infoRow+timelineCard+commCard+
-    '<div class="profile-row">'+notesCard+tasksCard+'</div>'+filesCard;
+    '<div class="profile-row">'+notesCard+tasksCard+'</div>'+activityCard+filesCard;
 }
 
 function pgInvoice(){
