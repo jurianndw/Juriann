@@ -4,6 +4,8 @@ var clientsView={sort:null,dir:1,filter:"all",q:"",page:1,selected:{},pageIndice
 var onboardStep=1;
 var profileIdx=-1;
 var TEAM=["Juriann","Tiaan","Ruben"];
+var invoiceShowDoc=true;
+var invoiceListView={filter:"all"};
 
 /* ==================================================================
    SUPABASE — shared client database (Outreach Dashboard project)
@@ -166,7 +168,8 @@ function buildNav(){
   el("nav").innerHTML=NAV_GROUPS.map(function(g){
     var items=g[1].map(function(id){
       var p=byId[id];if(!p)return "";
-      return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" title="'+esc(p[1])+'" onclick="goPage(\''+id+'\')">'+
+      var handler=id==="invoice"?"goInvoiceList()":"goPage('"+id+"')";
+      return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" title="'+esc(p[1])+'" onclick="'+handler+'">'+
         ic(p[2])+'<span>'+p[1]+'</span></button>';
     }).join("");
     return '<div class="navgroup">'+(g[0]?'<div class="navlabel">'+g[0]+'</div>':"")+items+'</div>';
@@ -174,10 +177,19 @@ function buildNav(){
 }
 function goPage(id){
   if(!PAGES.some(function(p){return p[0]===id;}))id="dashboard";
+  if(id==="invoice")invoiceShowDoc=true; /* every direct "view/open invoice" caller means the document, not the list */
   current=id;
   buildNav();
   var t=PAGES.filter(function(p){return p[0]===id;})[0];
   el("crumb").textContent=t?t[1]:id;
+  render();
+  el("scroll").scrollTop=0;
+}
+function goInvoiceList(){
+  invoiceShowDoc=false;
+  current="invoice";
+  buildNav();
+  el("crumb").textContent="Invoices";
   render();
   el("scroll").scrollTop=0;
 }
@@ -190,7 +202,7 @@ function render(){
   else if(current==="onboard")html=pgOnboard();
   else if(current==="clients")html=pgClients();
   else if(current==="agreement")html=pgAgreement();
-  else if(current==="invoice")html=pgInvoice();
+  else if(current==="invoice")html=invoiceShowDoc?pgInvoice():pgInvoiceList();
   else if(current==="messages")html=pgMessages();
   else if(current==="settings")html=pgSettings();
   else if(current==="profile")html=pgProfile();
@@ -671,6 +683,7 @@ function bulkMarkCompleted(){
   idxs.forEach(function(i){
     var x=db.clients[i];if(!x)return;
     x.status="Completed";
+    if(x.invoice)x.invoice.status="PAID";
     cloudSaveClient(x);
   });
   clientsView.selected={};
@@ -968,6 +981,96 @@ function pgProfile(){
     '<div class="profile-row">'+notesCard+tasksCard+'</div>'+activityCard+filesCard;
 }
 
+/* ==================================================================
+   INVOICES — one premium card per client, drill into the real document
+   ================================================================== */
+function pgInvoiceList(){
+  var v=invoiceListView;
+  var rows=db.clients.map(function(x,i){return {x:x,i:i};});
+  var countAll=rows.length;
+  var countUnpaid=rows.filter(function(r){return (r.x.invoice&&r.x.invoice.status)!=="PAID";}).length;
+  var countPaid=countAll-countUnpaid;
+  var totalOutstanding=rows.filter(function(r){return (r.x.invoice&&r.x.invoice.status)!=="PAID";})
+    .reduce(function(a,r){return a+calcInvoiceTotals(r.x.invoice||{items:[]}).grand;},0);
+
+  var head='<div class="pagehead"><div class="rowbetween"><div><div class="h1">Invoices</div>'+
+    '<div class="sub">'+countAll+' invoice'+(countAll===1?"":"s")+' · '+money(totalOutstanding)+' outstanding</div></div>'+
+    '<button class="btn pri sm" onclick="goPage(\'onboard\')">'+ic("plus")+'New client</button></div></div>';
+
+  if(!countAll){
+    return head+'<div class="card pad" style="text-align:center;padding:50px">'+
+      '<div class="sectitle" style="margin-bottom:6px">No invoices yet</div>'+
+      '<div class="sub" style="max-width:380px;margin:0 auto 18px">Onboard your first client and their invoice appears here automatically.</div>'+
+      '<button class="btn pri" onclick="goPage(\'onboard\')">'+ic("sparkle")+'Start onboarding</button></div>';
+  }
+
+  if(v.filter==="unpaid")rows=rows.filter(function(r){return (r.x.invoice&&r.x.invoice.status)!=="PAID";});
+  else if(v.filter==="paid")rows=rows.filter(function(r){return (r.x.invoice&&r.x.invoice.status)==="PAID";});
+
+  var tabs='<div class="tbl-filters" style="margin-bottom:18px">'+
+    invFilterTab("all","All",countAll)+invFilterTab("unpaid","Unpaid",countUnpaid)+invFilterTab("paid","Paid",countPaid)+
+  '</div>';
+
+  return head+tabs+'<div class="invoice-grid">'+rows.map(invoiceCard).join("")+'</div>';
+}
+function invFilterTab(key,label,count){
+  return '<button class="tbl-tab'+(invoiceListView.filter===key?" on":"")+'" onclick="setInvoiceFilter(\''+key+'\')">'+esc(label)+' <span>'+count+'</span></button>';
+}
+function setInvoiceFilter(f){invoiceListView.filter=f;render();}
+function invoiceCard(row){
+  var x=row.x,i=row.i,inv=x.invoice||{items:[],status:"UNPAID"},t=calcInvoiceTotals(inv);
+  var paid=inv.status==="PAID";
+  return '<div class="card invoice-card">'+
+    '<div class="rowbetween" style="margin-bottom:14px;align-items:flex-start">'+
+      '<div style="display:flex;gap:12px;align-items:center;min-width:0">'+
+        '<div class="uava" style="width:38px;height:38px;font-size:13px;flex:none">'+initials(x.company)+'</div>'+
+        '<div style="min-width:0"><div style="font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(x.company)+'</div>'+
+          '<div style="font-size:12px;color:var(--grey-2)">'+esc(inv.number||"—")+'</div></div>'+
+      '</div>'+
+      '<span class="pill '+(paid?"ok":"warn")+'"><span class="d"></span>'+(paid?"Paid":"Unpaid")+'</span>'+
+    '</div>'+
+    '<div class="invoice-amount">'+money(t.grand)+'</div>'+
+    '<div class="invoice-meta"><span>Due '+esc(inv.due||"—")+'</span><span>'+esc(x.contact||x.name||"")+'</span></div>'+
+    '<div class="invoice-actions">'+
+      '<button class="iconbtn" title="Preview" onclick="loadClient('+i+');goPage(\'invoice\')">'+ic("eye")+'</button>'+
+      '<button class="iconbtn" title="Download PDF" onclick="downloadInvoicePDF('+i+')">'+ic("download")+'</button>'+
+      '<button class="iconbtn" title="Send via WhatsApp" onclick="sendInvoiceWA('+i+')" style="color:#25D366">'+WA_LOGO+'</button>'+
+      '<button class="iconbtn" title="Duplicate" onclick="duplicateInvoice('+i+')">'+ic("copy")+'</button>'+
+      (paid?"":'<button class="iconbtn" title="Mark as paid" onclick="markInvoicePaid('+i+')">'+ic("check")+'</button>')+
+    '</div>'+
+  '</div>';
+}
+function downloadInvoicePDF(i){
+  loadClient(i);
+  goPage("invoice");
+  setTimeout(exportPDF,60);
+}
+function sendInvoiceWA(i){
+  var x=db.clients[i];if(!x)return;
+  var inv=x.invoice||{items:[]},t=calcInvoiceTotals(inv);
+  var n=waNumber(x.phone);
+  if(!n){toast("No phone number saved for this client");return;}
+  var msg="Hi "+(x.name||x.contact||"")+"! Here's your invoice "+(inv.number||"")+" for "+money(t.grand)+", due "+(inv.due||"soon")+". Let me know if you have any questions.";
+  window.open("https://wa.me/"+n+"?text="+encodeURIComponent(msg),"_blank");
+}
+function duplicateInvoice(i){
+  var x=db.clients[i];if(!x)return;
+  loadClient(i);
+  var n=db.invoice.number||"INV-0001";
+  var m=n.match(/(\d+)$/);
+  db.invoice.number=m?n.slice(0,m.index)+String(Number(m[1])+1).padStart(m[1].length,"0"):n+"-2";
+  db.invoice.status="UNPAID";db.invoice.issue="";db.invoice.due="";
+  persist();
+  goPage("settings");
+  toast("Duplicated as "+db.invoice.number+" — set a due date and save to confirm");
+}
+function markInvoicePaid(i){
+  var x=db.clients[i];if(!x||!x.invoice)return;
+  x.invoice.status="PAID";x.status="Completed";
+  logProfActivity(x,"card","Marked invoice "+(x.invoice.number||"")+" as paid");
+  cloudSaveClient(x);persist();render();toast("Marked as paid");
+}
+
 function pgInvoice(){
   var t=invTotals(),inv=db.invoice,c=db.client;
   var rows=inv.items.map(function(i){var tot=(Number(i.qty)||0)*(Number(i.price)||0);
@@ -975,6 +1078,7 @@ function pgInvoice(){
       '<td class="r">'+esc(i.qty)+'</td><td class="r">'+money(i.price)+'</td><td class="r">'+money(tot)+'</td></tr>';}).join("");
   var statusPill=inv.status==="PAID"?'<span class="pill ok"><span class="d"></span>Paid</span>':'<span class="pill warn"><span class="d"></span>Unpaid</span>';
   return '<div class="docwrap">'+
+    '<button class="btn ghost sm no-print" style="margin-bottom:10px" onclick="goInvoiceList()">'+ic("chevronLeft")+'Back to Invoices</button>'+
     '<div class="docbar no-print"><div><div class="h1" style="font-size:22px">Invoice '+esc(inv.number)+'</div><div class="sub" style="margin-top:4px">Issued '+esc(inv.issue)+' · Due '+esc(inv.due)+'</div></div>'+
       '<div style="display:flex;gap:10px">'+
         '<button class="btn sm" onclick="goPage(\'onboard\')">'+ic("gear")+'Edit pricing</button>'+
