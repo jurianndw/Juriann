@@ -3,7 +3,7 @@
   --glass:rgba(255,255,255,.035); --glass-2:rgba(255,255,255,.055);
   --border:#232323; --border-2:rgba(255,255,255,.07); --hair:rgba(255,255,255,.05);
   --ring-track:rgba(255,255,255,.09);
-  --white:#F5F5F7; --grey:#8E8E93; --grey-2:#636366; --grey-3:#48484A;
+  --white:#F5F5F7; --grey:#8E8E93; --grey-2:#7A7A80; --grey-3:#48484A;
   --acc:#C6A15B; --acc-2:#8C6A3F; --acc-soft:rgba(198,161,91,.14); --on-acc:#1B140A;
   --grad:linear-gradient(135deg,#D9B876 0%,#9A7440 100%);
   --ok:#6FAE85; --ok-soft:rgba(111,174,133,.14);
@@ -36,6 +36,17 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 ::-webkit-scrollbar-thumb{background:var(--scroll-thumb);border-radius:9px;border:2px solid var(--bg)}
 ::-webkit-scrollbar-thumb:hover{background:var(--scroll-thumb-hover)}
 
+/* keyboard focus -- :focus-visible only, so mouse clicks stay clean and only
+   keyboard/programmatic focus shows the ring. Form inputs already have their
+   own accent box-shadow ring; this brings every other interactive element
+   (buttons, nav, table rows, cards, chips, wizard steps, search results) up
+   to the same standard, which the app had none of before this pass. */
+.btn:focus-visible,.iconbtn:focus-visible,.navitem:focus-visible,.tbl-tab:focus-visible,
+.tbl-th:focus-visible,.tbl-row:focus-visible,.wizstep:focus-visible,.assignee-chip:focus-visible,
+.sr-item:focus-visible,.dash-mile:focus-visible,.dash-qa:focus-visible,
+.dash-attn:focus-visible,.dash-more:focus-visible{
+  outline:2px solid var(--acc);outline-offset:2px;border-radius:8px}
+
 .app{position:relative;z-index:1;display:grid;grid-template-columns:var(--sidebar-w,266px) 1fr;height:100vh;
   transition:grid-template-columns .32s var(--ease)}
 .app.sidebar-collapsed{--sidebar-w:80px}
@@ -55,7 +66,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   padding:9px 12px 9px 34px;color:var(--white);font-size:13px;font-family:inherit;transition:.2s}
 .search input::placeholder{color:var(--grey-2)}
 .search input:focus{outline:none;background:var(--glass-2);border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
-.navlabel{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--grey-3);
+.navlabel{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--grey-2);
   font-weight:600;padding:0 14px 9px;white-space:nowrap}
 .nav{padding:8px 14px 0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex:1}
 .navgroup{display:flex;flex-direction:column;gap:2px;margin-bottom:24px}
@@ -207,6 +218,8 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .tbl-tab:hover{background:var(--glass)}
 .tbl-tab.on{background:var(--glass-2);border-color:var(--hair);color:var(--white)}
 .tbl-tab.on span{color:var(--acc)}
+
+.settings-tabnav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--hair)}
 
 .tbl-bulk{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   padding:12px 18px;margin-bottom:12px;border-radius:var(--r-md);background:var(--acc-soft);
@@ -632,7 +645,7 @@ mark{background:var(--acc-soft);color:var(--acc);border-radius:3px;padding:0 1px
 .info-line:last-child{border-bottom:none}
 .info-line .k{color:var(--grey-2)}
 .info-line .v{font-weight:500;text-align:right}
-.info-line .v .empty{color:var(--grey-3);font-weight:400}
+.info-line .v .empty{color:var(--grey-2);font-weight:400}
 
 .note-item{padding:12px 4px;border-bottom:1px solid var(--hair)}
 .note-item:last-child{border-bottom:none}

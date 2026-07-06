@@ -104,6 +104,10 @@ var ICONS={
   chevronRight:'<polyline points="9 18 15 12 9 6"/>',
   eye:'<path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/>'
 };
+/* keyboard equivalent for the div-based clickable rows below -- Enter/Space
+   triggers the same onclick already on the element, so no handler logic is
+   duplicated; role="button" + tabindex make it a real stop in the tab order */
+var KBD_ACT=' tabindex="0" role="button" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}"';
 /* WhatsApp brand mark (filled, official glyph) */
 var WA_LOGO='<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;stroke:none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
 
@@ -187,7 +191,8 @@ function buildNav(){
     var items=g[1].map(function(id){
       var p=byId[id];if(!p)return "";
       var handler=id==="invoice"?"goInvoiceList()":"goPage('"+id+"')";
-      return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" title="'+esc(p[1])+'" onclick="'+handler+'">'+
+      return '<button class="navitem'+(id===current?" on":"")+'" data-page="'+id+'" title="'+esc(p[1])+'"'+
+        (id===current?' aria-current="page"':'')+' onclick="'+handler+'">'+
         ic(p[2])+'<span>'+p[1]+'</span></button>';
     }).join("");
     return '<div class="navgroup">'+(g[0]?'<div class="navlabel">'+g[0]+'</div>':"")+items+'</div>';
@@ -295,13 +300,13 @@ function attentionSec(unpaid){
     '<div class="dash-sec-head"><div class="dash-sec-title">Needs attention</div>'+
       (unpaid.length?'<div class="dash-sec-note">'+unpaid.length+' outstanding</div>':"")+'</div>'+
     (shown.length?'<div>'+shown.map(attnRow).join("")+'</div>'+
-        (extra>0?'<div class="dash-more" onclick="goPage(\'clients\')">+'+extra+' more in Past Clients</div>':"")
+        (extra>0?'<div class="dash-more" onclick="goPage(\'clients\')"'+KBD_ACT+'>+'+extra+' more in Past Clients</div>':"")
       :emptyMini("check","Nothing outstanding — every client is settled up.","ok"))+
   '</div>';
 }
 function attnRow(row){
   var x=row.x,i=row.i;
-  return '<div class="dash-attn" onclick="loadClient('+i+')">'+
+  return '<div class="dash-attn" onclick="loadClient('+i+')"'+KBD_ACT+'>'+
     '<div class="uava">'+initials(x.company)+'</div>'+
     '<div style="flex:1;min-width:0"><div class="nm">'+esc(x.company)+'</div><div class="ds">'+esc(x.project)+' · '+money(x.value)+'</div></div>'+
     '<button class="iconbtn" title="Message '+esc(x.company)+'" onclick="event.stopPropagation();waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')">'+WA_LOGO+'</button>'+
@@ -323,7 +328,7 @@ function dashStat(k,v,m){
 }
 function mileRow(m,idx,cur){
   var right=m.done?"Done":(cur?"Up next":(m.due?"Due "+esc(m.due):"—"));
-  return '<div class="dash-mile'+(m.done?" done":"")+(cur?" current":"")+'" onclick="toggleMilestone('+idx+')">'+
+  return '<div class="dash-mile'+(m.done?" done":"")+(cur?" current":"")+'" onclick="toggleMilestone('+idx+')"'+KBD_ACT+'>'+
     '<div class="dash-check">'+(m.done?ic("check"):"")+'</div>'+
     '<div style="flex:1;min-width:0"><div class="nm">'+esc(m.name)+'</div><div class="ds">'+esc(m.desc)+'</div></div>'+
     '<div class="due">'+right+'</div></div>';
@@ -368,7 +373,7 @@ function wizIndicator(){
   return '<div class="wizsteps">'+ONBOARD_STEPS.map(function(s,idx){
     var cls=s.n===onboardStep?"on":(s.n<onboardStep?"done":"");
     var line=idx<ONBOARD_STEPS.length-1?'<div class="wizline"></div>':"";
-    return '<div class="wizstep '+cls+'" onclick="onboardNav('+s.n+')"><span class="wizdot">'+
+    return '<div class="wizstep '+cls+'" onclick="onboardNav('+s.n+')" aria-label="Step '+s.n+': '+esc(s.t)+'"'+KBD_ACT+'><span class="wizdot">'+
       (s.n<onboardStep?ic("check"):s.n)+'</span><span class="wizlabel">'+s.t+'</span></div>'+line;
   }).join("")+'</div>';
 }
@@ -728,7 +733,7 @@ function bulkRemoveClients(){
 function clientRow(row){
   var x=row.x,i=row.i;
   var checked=!!clientsView.selected[i];
-  return '<div class="tbl-row'+(checked?" sel":"")+'" onclick="toggleClientSelect('+i+')">'+
+  return '<div class="tbl-row'+(checked?" sel":"")+'" onclick="toggleClientSelect('+i+')"'+KBD_ACT+'>'+
     '<div class="tbl-check"><input type="checkbox" '+(checked?"checked":"")+' onclick="event.stopPropagation()" onchange="toggleClientSelect('+i+')"></div>'+
     '<div style="display:flex;align-items:center;gap:12px;min-width:0">'+
       '<div class="uava" style="width:34px;height:34px;font-size:12.5px;flex:none">'+initials(x.company)+'</div>'+
@@ -795,7 +800,7 @@ function fileSize(n){
   return (n/1048576).toFixed(1)+" MB";
 }
 function profMileRow(m,idx){
-  return '<div class="dash-mile'+(m.done?" done":"")+'" onclick="toggleProfMilestone('+idx+')">'+
+  return '<div class="dash-mile'+(m.done?" done":"")+'" onclick="toggleProfMilestone('+idx+')"'+KBD_ACT+'>'+
     '<div class="dash-check">'+(m.done?ic("check"):"")+'</div>'+
     '<div style="flex:1;min-width:0"><div class="nm">'+esc(m.name)+'</div><div class="ds">'+esc(m.desc)+'</div></div>'+
     '<div class="due">'+(m.done?"Done":(m.due?"Due "+esc(m.due):"—"))+'</div></div>';
@@ -827,7 +832,7 @@ function toggleProfAssignee(name){
   persist();render();
 }
 function profTaskRow(tk,idx){
-  return '<div class="dash-mile'+(tk.done?" done":"")+'" onclick="toggleProfTask('+idx+')">'+
+  return '<div class="dash-mile'+(tk.done?" done":"")+'" onclick="toggleProfTask('+idx+')"'+KBD_ACT+'>'+
     '<div class="dash-check">'+(tk.done?ic("check"):"")+'</div>'+
     '<div style="flex:1;min-width:0"><div class="nm">'+esc(tk.text)+'</div></div>'+
     '<button class="iconbtn" style="width:30px;height:30px" onclick="event.stopPropagation();removeProfTask('+idx+')" title="Remove">'+ic("trash")+'</button>'+
@@ -950,7 +955,7 @@ function pgProfile(){
       '<div style="margin-top:16px"><div class="cardlabel" style="margin-bottom:9px">Assigned</div>'+
         '<div class="assignee-row">'+TEAM.map(function(n){
           var on=assigned.indexOf(n)>=0;
-          return '<div class="assignee-chip'+(on?" on":"")+'" onclick="toggleProfAssignee(\''+n+'\')"><span class="ava">'+initials(n)+'</span>'+esc(n)+'</div>';
+          return '<div class="assignee-chip'+(on?" on":"")+'" onclick="toggleProfAssignee(\''+n+'\')"'+KBD_ACT+'><span class="ava">'+initials(n)+'</span>'+esc(n)+'</div>';
         }).join("")+'</div></div>'+
     '</div></div>';
 
@@ -1233,6 +1238,21 @@ function sendMsg(){
 }
 function nowTime(){return new Date().toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"});}
 
+/* Settings used to be one long scroll of 5 stacked cards -- every field
+   still lives in the DOM at all times (saveSettings() reads them all
+   regardless of which tab is showing), only *visibility* is toggled, so
+   switching tabs can never silently lose an unsaved edit on another tab. */
+var settingsTab="client";
+var SETTINGS_TABS=[["client","Client & Project"],["invoice","Invoice"],["agreement","Agreement"],["account","Account"]];
+function setSettingsTab(tab){
+  settingsTab=tab;
+  document.querySelectorAll(".settings-panel").forEach(function(p){
+    p.style.display=(p.getAttribute("data-tab")===tab)?"block":"none";
+  });
+  document.querySelectorAll(".settings-tabnav .tbl-tab").forEach(function(b){
+    b.classList.toggle("on",b.getAttribute("data-tab")===tab);
+  });
+}
 function pgSettings(){
   var c=db.client,p=db.project,inv=db.invoice,a=db.agreement;
   var acct;
@@ -1243,21 +1263,27 @@ function pgSettings(){
       '<div class="sub" style="font-size:12px;margin-top:3px">Past Clients sync to the shared team database automatically.</div></div>'+
       '<button class="btn sm" onclick="syncClients(true);toast(\'Syncing…\')">'+ic("upload")+'Sync now</button></div>';
   }
-  return '<div class="pagehead"><div class="h1">Settings</div><div class="sub">Edit your agency\'s info and this project\'s details — everything here updates the invoice, agreement and documents automatically.</div></div>'+
-    '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:14px">Team account</div>'+acct+'</div>'+
+  var tabnav='<div class="settings-tabnav">'+SETTINGS_TABS.map(function(t){
+    return '<button class="tbl-tab'+(settingsTab===t[0]?" on":"")+'" data-tab="'+t[0]+'" onclick="setSettingsTab(\''+t[0]+'\')">'+esc(t[1])+'</button>';
+  }).join("")+'</div>';
+  function panel(tab,html){return '<div class="settings-panel" data-tab="'+tab+'" style="display:'+(settingsTab===tab?"block":"none")+'">'+html+'</div>';}
+
+  var clientPanel=panel("client",
     '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:16px">Client</div>'+
       '<div class="setgrid">'+
         setField("s_name","Display name",c.name)+setField("s_company","Company",c.company)+
         setField("s_contact","Contact person",c.contact)+setField("s_email","Email",c.email)+
         setField("s_phone","Phone",c.phone)+setField("s_address","Address",c.address)+
       '</div></div>'+
-    '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:16px">Project</div>'+
+    '<div class="card pad"><div class="sectitle" style="margin-bottom:16px">Project</div>'+
       '<div class="setgrid">'+
         setField("s_pname","Project name",p.name)+setField("s_status","Status",p.status)+
         setField("s_est","Est. completion",p.estCompletion)+
       '</div>'+
-      '<div class="f full" style="margin-top:16px"><textarea id="s_obj" placeholder=" ">'+esc(p.objective)+'</textarea><label>Objective</label></div></div>'+
-    '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:16px">Your agency &amp; invoice details</div>'+
+      '<div class="f full" style="margin-top:16px"><textarea id="s_obj" placeholder=" ">'+esc(p.objective)+'</textarea><label>Objective</label></div></div>');
+
+  var invoicePanel=panel("invoice",
+    '<div class="card pad"><div class="sectitle" style="margin-bottom:16px">Your agency &amp; invoice details</div>'+
       '<div class="setgrid">'+
         setField("s_bizname","Business name (shown on invoice)",inv.bank.name)+setField("s_invno","Invoice number",inv.number)+
         setField("s_invstatus","Status (PAID / UNPAID)",inv.status)+
@@ -1268,12 +1294,20 @@ function pgSettings(){
       '<div class="cardlabel" style="margin:18px 0 10px">Line items — edit prices here and the invoice updates on save</div>'+
       '<div id="lineItems">'+inv.items.map(lineItemRow).join("")+'</div>'+
       '<button class="btn sm" style="margin-top:10px" onclick="addLineItem()">'+ic("plus")+'Add line item</button>'+
-    '</div>'+
-    '<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:16px">Agreement</div>'+
+    '</div>');
+
+  var agreementPanel=panel("agreement",
+    '<div class="card pad"><div class="sectitle" style="margin-bottom:16px">Agreement</div>'+
       '<div class="setgrid">'+
         setField("s_agrno","Agreement number",a.number)+setField("s_rev","Revision rounds",a.revisions,"number")+
         setField("s_dep","Deposit %",a.deposit,"number")+setField("s_bal","Balance %",a.balance,"number")+
-      '</div></div>'+
+      '</div></div>');
+
+  var accountPanel=panel("account",
+    '<div class="card pad"><div class="sectitle" style="margin-bottom:14px">Team account</div>'+acct+'</div>');
+
+  return '<div class="pagehead"><div class="h1">Settings</div><div class="sub">Edit your agency\'s info and this project\'s details — everything here updates the invoice, agreement and documents automatically.</div></div>'+
+    tabnav+clientPanel+invoicePanel+agreementPanel+accountPanel+
     '<div class="floatbar"><button class="btn" onclick="resetAll()">'+ic("trash")+'Reset portal (clear all clients &amp; data)</button>'+
       '<button class="btn pri" onclick="saveSettings()">'+ic("check")+'Save changes</button></div>';
 }
@@ -1426,7 +1460,7 @@ function renderSearchResults(rawQ){
   panel.innerHTML=order.map(function(cat){
     return '<div class="sr-group"><div class="sr-group-label">'+esc(cat)+'</div>'+
       grouped[cat].map(function(r){
-        return '<div class="sr-item" onclick="goSearchResult('+r.idx+')">'+
+        return '<div class="sr-item" onclick="goSearchResult('+r.idx+')"'+KBD_ACT+'>'+
           '<div class="sr-ico">'+ic(r.icon)+'</div>'+
           '<div style="flex:1;min-width:0"><div class="sr-title">'+hiMatch(r.title,q)+'</div>'+
           '<div class="sr-sub">'+esc(r.sub)+'</div></div></div>';
