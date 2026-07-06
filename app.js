@@ -202,6 +202,7 @@ function goPage(id){
   el("crumb").textContent=t?t[1]:id;
   render();
   el("scroll").scrollTop=0;
+  closeMobileNav();
 }
 function goInvoiceList(){
   invoiceShowDoc=false;
@@ -210,6 +211,7 @@ function goInvoiceList(){
   el("crumb").textContent="Invoices";
   render();
   el("scroll").scrollTop=0;
+  closeMobileNav();
 }
 
 /* ---------- render dispatch ---------- */
@@ -737,7 +739,7 @@ function clientRow(row){
     '<div style="font-size:13.5px;font-weight:500;font-variant-numeric:tabular-nums">'+money(x.value)+'</div>'+
     '<div><span class="pill '+(x.status==="Completed"?"ok":"acc")+'"><span class="d"></span>'+esc(x.status)+'</span></div>'+
     '<div class="tbl-cell-muted">'+esc(x.date)+'</div>'+
-    '<div style="display:flex;gap:6px;justify-content:flex-end" onclick="event.stopPropagation()">'+
+    '<div class="row-actions" onclick="event.stopPropagation()">'+
       '<button class="iconbtn" title="View profile" onclick="openProfile('+i+')" style="width:30px;height:30px">'+ic("eye")+'</button>'+
       '<button class="iconbtn" title="WhatsApp" onclick="waTo(\''+esc(x.phone)+'\',\''+esc(x.name||x.contact)+'\')" style="width:30px;height:30px;color:#25D366">'+WA_LOGO+'</button>'+
       '<button class="iconbtn" title="Load into portal" onclick="loadClient('+i+')" style="width:30px;height:30px">'+ic("upload")+'</button>'+
@@ -780,6 +782,7 @@ function openProfile(i){
   el("crumb").textContent=db.clients[i].company||"Client profile";
   render();
   el("scroll").scrollTop=0;
+  closeMobileNav();
 }
 function infoLine(label,val){
   return '<div class="info-line"><span class="k">'+esc(label)+'</span><span class="v">'+
@@ -1130,7 +1133,7 @@ function pgInvoice(){
   return '<div class="docwrap">'+
     '<button class="btn ghost sm no-print" style="margin-bottom:10px" onclick="goInvoiceList()">'+ic("chevronLeft")+'Back to Invoices</button>'+
     '<div class="docbar no-print"><div><div class="h1" style="font-size:22px">Invoice '+esc(inv.number)+'</div><div class="sub" style="margin-top:4px">Issued '+esc(inv.issue)+' · Due '+esc(inv.due)+'</div></div>'+
-      '<div style="display:flex;gap:10px">'+
+      '<div class="docbar-actions">'+
         '<button class="btn sm" onclick="goPage(\'onboard\')">'+ic("gear")+'Edit pricing</button>'+
         '<button class="btn sm" onclick="window.print()">'+ic("print")+'Print</button>'+
         '<button class="btn pri sm" onclick="exportPDF()">'+ic("download")+'Export PDF</button></div></div>'+
@@ -1179,7 +1182,7 @@ function pgAgreement(){
   ];
   return '<div class="docwrap">'+
     '<div class="docbar no-print"><div><div class="h1" style="font-size:22px">Service Agreement</div><div class="sub" style="margin-top:4px">'+esc(a.number)+' · '+esc(a.date)+'</div></div>'+
-      '<div style="display:flex;gap:10px;align-items:center">'+
+      '<div class="docbar-actions">'+
         (a.signed?'<span class="pill ok"><span class="d"></span>Signed '+esc(a.signedDate)+'</span>':
           '<button class="btn sm" onclick="markSigned()">'+ic("check")+'Mark as signed</button>')+
         '<button class="btn sm" onclick="window.print()">'+ic("print")+'Print</button>'+
@@ -1283,7 +1286,7 @@ function clearFieldErr(input){
   var e=f.querySelector(".f-err");if(e)e.textContent="";
 }
 function lineItemRow(i,idx){
-  return '<div class="lirow" style="display:grid;grid-template-columns:2fr 2fr 70px 110px 36px;gap:9px;margin-bottom:9px;align-items:center">'+
+  return '<div class="lirow">'+
     '<div class="f compact"><input class="li-desc" placeholder="Description" value="'+esc(i.desc)+'"></div>'+
     '<div class="f compact"><input class="li-note" placeholder="Note (optional)" value="'+esc(i.note||"")+'"></div>'+
     '<div class="f compact"><input class="li-qty" type="number" min="1" value="'+esc(i.qty)+'"></div>'+
@@ -1351,7 +1354,16 @@ function applyTheme(){document.documentElement.setAttribute("data-theme",db.them
   el("themeIco").innerHTML=db.theme==="dark"?ICONS.sun||'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>':'<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.9" y1="4.9" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.1" y2="19.1"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.9" y1="19.1" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.1" y2="4.9"/>';}
 function toggleTheme(){db.theme=db.theme==="dark"?"light":"dark";persist();applyTheme();}
 function applySidebar(){document.querySelector(".app").classList.toggle("sidebar-collapsed",!!db.sidebarCollapsed);}
-function toggleSidebar(){db.sidebarCollapsed=!db.sidebarCollapsed;persist();applySidebar();}
+/* below 900px the same topbar button opens/closes a slide-in drawer instead of
+   toggling the desktop rail -- mobileNavOpen is deliberately not persisted, it's
+   a transient UI state, not a saved preference like sidebarCollapsed */
+var mobileNavOpen=false;
+function applyMobileNav(){document.querySelector(".app").classList.toggle("nav-open",mobileNavOpen);}
+function closeMobileNav(){if(mobileNavOpen){mobileNavOpen=false;applyMobileNav();}}
+function toggleSidebar(){
+  if(window.innerWidth<=900){mobileNavOpen=!mobileNavOpen;applyMobileNav();return;}
+  db.sidebarCollapsed=!db.sidebarCollapsed;persist();applySidebar();
+}
 
 function toast(msg){
   var wrap=el("toasts");var t=document.createElement("div");t.className="toast";
