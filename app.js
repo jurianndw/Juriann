@@ -1310,17 +1310,92 @@ function toast(msg){
 }
 
 /* ---------- search ---------- */
+/* ==================================================================
+   GLOBAL SEARCH — instant, cross-entity (clients, projects, invoices,
+   files, messages, tasks), all results resolve to one place: the
+   matching client's Profile page, which already shows all of it.
+   ================================================================== */
+function truncate(s,n){s=String(s||"");return s.length>n?s.slice(0,n).trim()+"…":s;}
+function matchAny(q,arr){return arr.some(function(s){return s&&String(s).toLowerCase().indexOf(q)>=0;});}
+function hiMatch(text,q){
+  text=String(text||"");
+  var idx=text.toLowerCase().indexOf(q.toLowerCase());
+  if(idx<0)return esc(text);
+  return esc(text.slice(0,idx))+"<mark>"+esc(text.slice(idx,idx+q.length))+"</mark>"+esc(text.slice(idx+q.length));
+}
+function searchIndex(rawQ){
+  var q=rawQ.trim().toLowerCase();
+  if(!q)return [];
+  var out=[];
+  function hit(cat,icon,title,sub,idx){out.push({cat:cat,icon:icon,title:title,sub:sub,idx:idx});}
+  db.clients.forEach(function(x,i){
+    var pi=x.projectInfo||{},inv=x.invoice||{items:[]};
+    if(matchAny(q,[x.company,x.contact,x.name,x.email,x.phone,x.address]))
+      hit("Client","building",x.company,x.contact||x.name||"",i);
+    if(pi.name&&matchAny(q,[pi.name,pi.objective,pi.status]))
+      hit("Project","target",pi.name,"Project for "+x.company,i);
+    var invHay=[inv.number].concat((inv.items||[]).map(function(it){return it.desc+" "+(it.note||"");}));
+    if(matchAny(q,invHay))
+      hit("Invoice","card",inv.number||"Invoice",x.company+" · "+money(calcInvoiceTotals(inv).grand),i);
+    (x.files||[]).forEach(function(f){if(matchAny(q,[f.name]))hit("File","doc2",f.name,"File for "+x.company,i);});
+    (x.messages||[]).forEach(function(m){if(matchAny(q,[m.text]))hit("Message","chat",truncate(m.text,60),x.company,i);});
+    (x.tasks||[]).forEach(function(t){if(matchAny(q,[t.text]))hit("Task","clipboard",t.text,"Task for "+x.company,i);});
+  });
+  return out;
+}
+function renderSearchResults(rawQ){
+  var panel=el("searchResults");if(!panel)return;
+  var results=searchIndex(rawQ);
+  if(!results.length){
+    panel.innerHTML='<div class="sr-empty">No results for "'+esc(rawQ.trim())+'"</div>';
+    panel.style.display="block";positionSearchPanel();return;
+  }
+  var q=rawQ.trim(),grouped={},order=[];
+  results.forEach(function(r){
+    if(!grouped[r.cat]){grouped[r.cat]=[];order.push(r.cat);}
+    if(grouped[r.cat].length<4)grouped[r.cat].push(r);
+  });
+  panel.innerHTML=order.map(function(cat){
+    return '<div class="sr-group"><div class="sr-group-label">'+esc(cat)+'</div>'+
+      grouped[cat].map(function(r){
+        return '<div class="sr-item" onclick="goSearchResult('+r.idx+')">'+
+          '<div class="sr-ico">'+ic(r.icon)+'</div>'+
+          '<div style="flex:1;min-width:0"><div class="sr-title">'+hiMatch(r.title,q)+'</div>'+
+          '<div class="sr-sub">'+esc(r.sub)+'</div></div></div>';
+      }).join("")+
+    '</div>';
+  }).join("");
+  panel.style.display="block";positionSearchPanel();
+}
+function positionSearchPanel(){
+  var input=el("search"),panel=el("searchResults");
+  if(!input||!panel)return;
+  var r=input.getBoundingClientRect();
+  panel.style.top=(r.bottom+8)+"px";
+  panel.style.left=r.left+"px";
+  panel.style.width=Math.max(320,r.width+40)+"px";
+}
+function closeSearchResults(){var p=el("searchResults");if(p)p.style.display="none";}
+function goSearchResult(i){
+  closeSearchResults();
+  var s=el("search");if(s)s.value="";
+  openProfile(i);
+}
 function initSearch(){
   var s=el("search");if(!s)return;
   s.addEventListener("input",function(){
-    var q=s.value.toLowerCase();
-    document.querySelectorAll(".navitem").forEach(function(n){
-      var t=n.textContent.toLowerCase();n.style.display=(!q||t.indexOf(q)>=0)?"flex":"none";});
+    if(!s.value.trim()){closeSearchResults();return;}
+    renderSearchResults(s.value);
   });
+  s.addEventListener("focus",function(){if(s.value.trim())renderSearchResults(s.value);});
   s.addEventListener("keydown",function(e){
-    if(e.key==="Enter"){var first=Array.prototype.slice.call(document.querySelectorAll(".navitem")).filter(function(n){return n.style.display!=="none";})[0];
-      if(first){goPage(first.getAttribute("data-page"));s.value="";document.querySelectorAll(".navitem").forEach(function(n){n.style.display="flex";});}}
+    if(e.key==="Enter"){var first=document.querySelector(".sr-item");if(first)first.click();}
+    else if(e.key==="Escape"){closeSearchResults();s.blur();}
   });
+  document.addEventListener("click",function(e){
+    if(!e.target.closest(".search")&&!e.target.closest("#searchResults"))closeSearchResults();
+  });
+  window.addEventListener("resize",function(){if(el("searchResults").style.display==="block")positionSearchPanel();});
 }
 
 /* ---------- boot ---------- */

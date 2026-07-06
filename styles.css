@@ -525,6 +525,23 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .assignee-chip.on{border-color:var(--acc);background:var(--acc-soft);color:var(--acc)}
 .assignee-chip.on .ava{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
 
+/* global search */
+.search-results{position:fixed;display:none;z-index:300;max-height:420px;overflow-y:auto;
+  background:var(--surface-toast);border:1px solid var(--border-2);border-radius:16px;
+  box-shadow:var(--sh);backdrop-filter:blur(20px);padding:8px}
+.sr-group{margin-bottom:4px}
+.sr-group:last-child{margin-bottom:0}
+.sr-group-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--grey-2);
+  font-weight:600;padding:8px 10px 4px}
+.sr-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;cursor:pointer;transition:background .15s}
+.sr-item:hover{background:var(--glass)}
+.sr-ico{width:30px;height:30px;border-radius:9px;background:var(--glass-2);display:flex;align-items:center;justify-content:center;flex:none}
+.sr-ico svg{width:15px;height:15px;stroke:var(--acc);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sr-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-sub{font-size:11.5px;color:var(--grey-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.sr-empty{padding:20px;text-align:center;font-size:13px;color:var(--grey-2)}
+mark{background:var(--acc-soft);color:var(--acc);border-radius:3px;padding:0 1px}
+
 /* invoice cards */
 .invoice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .invoice-card{padding:22px}
