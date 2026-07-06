@@ -308,14 +308,10 @@ function mileRow(m,idx,cur){
     '<div style="flex:1;min-width:0"><div class="nm">'+esc(m.name)+'</div><div class="ds">'+esc(m.desc)+'</div></div>'+
     '<div class="due">'+right+'</div></div>';
 }
-function toggleMilestone(idx){
-  var m=db.milestones[idx];if(!m)return;
-  m.done=!m.done;
-  if(m.done)logActivity("check","Milestone complete: "+m.name);
-  persist();
+function popCheckThenRender(scopeSelector,idx,isDone){
   var reduced=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var row=document.querySelectorAll(".dash-mile")[idx];
-  if(m.done&&row&&!reduced){
+  var row=document.querySelectorAll(scopeSelector)[idx];
+  if(isDone&&row&&!reduced){
     row.classList.add("done");
     var chk=row.querySelector(".dash-check");
     chk.innerHTML=ic("check");
@@ -324,6 +320,13 @@ function toggleMilestone(idx){
   }else{
     render();
   }
+}
+function toggleMilestone(idx){
+  var m=db.milestones[idx];if(!m)return;
+  m.done=!m.done;
+  if(m.done)logActivity("check","Milestone complete: "+m.name);
+  persist();
+  popCheckThenRender(".dash-mile",idx,m.done);
 }
 function actRow(a){
   return '<div class="dash-act"><div class="ico">'+ic(a.icon)+'</div>'+
@@ -576,6 +579,7 @@ function copyMsg(){
    ================================================================== */
 function pgClients(){
   if(cloudReady())syncClients();
+  if(cloudReady()&&syncing&&!db.clients.length)return pgClientsSkeleton();
   var v=clientsView;
   var total=db.clients.reduce(function(a,x){return a+(Number(x.value)||0);},0);
   var head='<div class="pagehead"><div class="rowbetween"><div><div class="h1">Past Clients</div>'+
@@ -781,7 +785,8 @@ function toggleProfMilestone(idx){
   var m=x.milestones[idx];if(!m)return;
   m.done=!m.done;
   if(m.done)logProfActivity(x,"check","Milestone complete: "+m.name);
-  persist();render();
+  persist();
+  popCheckThenRender("#profMiles .dash-mile",idx,m.done);
 }
 function logProfActivity(x,icon,text){
   if(!x.activity)x.activity=[];
@@ -821,7 +826,8 @@ function toggleProfTask(idx){
   var tk=x.tasks[idx];if(!tk)return;
   tk.done=!tk.done;
   if(tk.done)logProfActivity(x,"check","Task completed: "+tk.text);
-  persist();render();
+  persist();
+  popCheckThenRender("#profTasksList .dash-mile",idx,tk.done);
 }
 function removeProfTask(idx){
   var x=db.clients[profileIdx];if(!x||!x.tasks)return;
@@ -932,7 +938,7 @@ function pgProfile(){
     '<div class="rowbetween" style="margin-bottom:10px"><div class="sectitle">Timeline</div>'+
       '<div class="cardlabel">'+doneMiles+' / '+miles.length+' · '+pct+'%</div></div>'+
     '<div class="progress-bar" style="margin-bottom:14px"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>'+
-    '<div>'+miles.map(profMileRow).join("")+'</div></div>';
+    '<div id="profMiles">'+miles.map(profMileRow).join("")+'</div></div>';
 
   var commCard='<div class="card pad" style="margin-bottom:16px"><div class="sectitle" style="margin-bottom:14px">Recent communication</div>'+
     '<div class="thread">'+((x.messages&&x.messages.length)?x.messages.map(function(m){
@@ -954,7 +960,7 @@ function pgProfile(){
   '</div>';
 
   var tasksCard='<div class="card pad"><div class="sectitle" style="margin-bottom:10px">Tasks</div>'+
-    ((x.tasks&&x.tasks.length)?'<div>'+x.tasks.map(profTaskRow).join("")+'</div>':'<div class="dash-empty">No tasks yet.</div>')+
+    ((x.tasks&&x.tasks.length)?'<div id="profTasksList">'+x.tasks.map(profTaskRow).join("")+'</div>':'<div class="dash-empty">No tasks yet.</div>')+
     '<div class="composer" style="margin-top:12px"><input id="profTaskInput" placeholder="Add a task…" onkeydown="if(event.key===\'Enter\')addProfTask()">'+
       '<button class="btn sm" onclick="addProfTask()">'+ic("plus")+'Add</button></div>'+
   '</div>';
@@ -984,7 +990,35 @@ function pgProfile(){
 /* ==================================================================
    INVOICES — one premium card per client, drill into the real document
    ================================================================== */
+/* shown only for the one genuine async-latency moment in this app -- the very
+   first cloud fetch, before any local cache exists. Never shown for the app's
+   normal synchronous localStorage renders, and never shown once there's cached
+   data to display instead (a stale list beats a fake loading state). */
+function skelRow(){
+  return '<div class="skel-row"><div class="skel skel-ava"></div>'+
+    '<div class="skel skel-line" style="width:38%"></div>'+
+    '<div class="skel skel-line" style="width:16%"></div>'+
+    '<div class="skel skel-line" style="width:12%"></div></div>';
+}
+function pgClientsSkeleton(){
+  var rows="";for(var i=0;i<5;i++)rows+=skelRow();
+  return '<div class="pagehead"><div class="h1">Past Clients</div><div class="sub">Syncing with the cloud…</div></div>'+
+    '<div class="tbl-wrap">'+rows+'</div>';
+}
+function skelInvoiceCard(){
+  return '<div class="card invoice-card">'+
+    '<div class="skel skel-line" style="width:55%;margin-bottom:16px"></div>'+
+    '<div class="skel skel-line" style="width:45%;height:26px;margin-bottom:18px"></div>'+
+    '<div class="skel skel-line" style="width:75%"></div></div>';
+}
+function pgInvoiceListSkeleton(){
+  var cards="";for(var i=0;i<4;i++)cards+=skelInvoiceCard();
+  return '<div class="pagehead"><div class="h1">Invoices</div><div class="sub">Syncing with the cloud…</div></div>'+
+    '<div class="invoice-grid">'+cards+'</div>';
+}
 function pgInvoiceList(){
+  if(cloudReady())syncClients();
+  if(cloudReady()&&syncing&&!db.clients.length)return pgInvoiceListSkeleton();
   var v=invoiceListView;
   var rows=db.clients.map(function(x,i){return {x:x,i:i};});
   var countAll=rows.length;
@@ -1305,8 +1339,12 @@ function toast(msg){
   var wrap=el("toasts");var t=document.createElement("div");t.className="toast";
   t.innerHTML='<span class="ti">'+ic("check")+'</span>'+esc(msg);
   wrap.appendChild(t);
-  setTimeout(function(){t.style.transition="opacity .3s,transform .3s";t.style.opacity="0";t.style.transform="translateX(20px)";
-    setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},320);},2600);
+  var reduced=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setTimeout(function(){
+    t.style.transition=reduced?"opacity .2s":"opacity .3s,transform .3s";
+    t.style.opacity="0";if(!reduced)t.style.transform="translateX(20px)";
+    setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},reduced?210:320);
+  },2600);
 }
 
 /* ---------- search ---------- */
@@ -1348,7 +1386,7 @@ function renderSearchResults(rawQ){
   var results=searchIndex(rawQ);
   if(!results.length){
     panel.innerHTML='<div class="sr-empty">No results for "'+esc(rawQ.trim())+'"</div>';
-    panel.style.display="block";positionSearchPanel();return;
+    panel.classList.add("show");positionSearchPanel();return;
   }
   var q=rawQ.trim(),grouped={},order=[];
   results.forEach(function(r){
@@ -1365,7 +1403,7 @@ function renderSearchResults(rawQ){
       }).join("")+
     '</div>';
   }).join("");
-  panel.style.display="block";positionSearchPanel();
+  panel.classList.add("show");positionSearchPanel();
 }
 function positionSearchPanel(){
   var input=el("search"),panel=el("searchResults");
@@ -1375,7 +1413,7 @@ function positionSearchPanel(){
   panel.style.left=r.left+"px";
   panel.style.width=Math.max(320,r.width+40)+"px";
 }
-function closeSearchResults(){var p=el("searchResults");if(p)p.style.display="none";}
+function closeSearchResults(){var p=el("searchResults");if(p)p.classList.remove("show");}
 function goSearchResult(i){
   closeSearchResults();
   var s=el("search");if(s)s.value="";
@@ -1395,7 +1433,7 @@ function initSearch(){
   document.addEventListener("click",function(e){
     if(!e.target.closest(".search")&&!e.target.closest("#searchResults"))closeSearchResults();
   });
-  window.addEventListener("resize",function(){if(el("searchResults").style.display==="block")positionSearchPanel();});
+  window.addEventListener("resize",function(){if(el("searchResults").classList.contains("show"))positionSearchPanel();});
 }
 
 /* ---------- boot ---------- */
@@ -1467,6 +1505,15 @@ function fmtDate(d){
 
 /* ---- sync engine ---- */
 function cloudReady(){return CLOUD_ON&&!!supa;}
+/* re-render after a background cloud round-trip completes -- but never while the
+   user has an unsaved draft focused (Onboarding/Settings fields and the Profile's
+   note/task/message composers don't mirror to state until an explicit save/add,
+   so a full re-render mid-keystroke would silently wipe what they just typed) */
+function safeRefresh(){
+  var a=document.activeElement;
+  if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"))return;
+  render();
+}
 function syncClients(force){
   if(!cloudReady()||syncing)return;
   if(!force&&Date.now()-lastSync<15000)return;
@@ -1497,7 +1544,9 @@ function syncClients(force){
     });
     persist();lastSync=Date.now();syncing=false;
     setCloudState("synced");
-    if(current==="clients")render();
+    /* several pages (Dashboard, Invoices, Client Profile) all read db.clients too,
+       not just Past Clients -- refresh whichever one is actually on screen */
+    safeRefresh();
   }).catch(function(e){
     syncing=false;setCloudState("offline");
     console.warn("sync failed",e&&e.message);
@@ -1510,7 +1559,7 @@ function cloudSaveClient(rec){
       if(r.error)throw r.error;
       rec.id=r.data.id;rec.date=fmtDate(r.data.onboarded_on);delete rec._dirty;
       persist();setCloudState("synced");
-      if(current==="clients")render();
+      safeRefresh();
     }).catch(function(){rec._dirty=true;persist();setCloudState("offline");toast("Offline — saved on this device, will sync later");});
 }
 function cloudDeleteClient(rec){
