@@ -289,14 +289,14 @@ function attnRow(row){
 }
 function quickActionsSec(){
   return '<div class="dash-quick">'+
-    qaBtn("sparkle","New client","onboard")+
-    qaBtn("card","View invoice","invoice")+
-    qaBtn("file","Agreement","agreement")+
-    qaBtn("chat","Messages","messages")+
+    qaBtn("sparkle","New client","goPage('onboard')")+
+    qaBtn("card","Invoices","goInvoiceList()")+
+    qaBtn("users","Past Clients","goPage('clients')")+
+    qaBtn("chat","Messages","goPage('messages')")+
   '</div>';
 }
-function qaBtn(icon,label,page){
-  return '<button class="dash-qa" onclick="goPage(\''+page+'\')">'+ic(icon)+'<span>'+esc(label)+'</span></button>';
+function qaBtn(icon,label,action){
+  return '<button class="dash-qa" onclick="'+action+'">'+ic(icon)+'<span>'+esc(label)+'</span></button>';
 }
 function dashStat(k,v,m){
   return '<div class="dash-stat"><div class="k">'+esc(k)+'</div><div class="v">'+v+'</div><div class="m">'+esc(m)+'</div></div>';
