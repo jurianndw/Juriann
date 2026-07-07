@@ -397,7 +397,7 @@ function pgOnboard(){
         setField("ob_web","Website design & development (R)",web.price,"number")+
         setField("ob_seo","Basic SEO setup (R)",seo.price,"number")+
         setField("ob_dep","Deposit %",db.agreement.deposit,"number","Collected upfront; the rest becomes the balance due on completion")+
-        setField("ob_due","Invoice due date",inv.due)+
+        setField("ob_due","Invoice due date",inv.due,"date")+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap">'+
         '<label style="display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer"><input type="checkbox" id="ob_mo" '+(m.enabled?"checked":"")+' style="accent-color:var(--acc);width:16px;height:16px"> Monthly hosting & maintenance</label>'+
@@ -1081,7 +1081,7 @@ function invoiceCard(row){
       '<span class="pill '+(paid?"ok":"warn")+'"><span class="d"></span>'+(paid?"Paid":"Unpaid")+'</span>'+
     '</div>'+
     '<div class="invoice-amount">'+money(t.grand)+'</div>'+
-    '<div class="invoice-meta"><span>Due '+esc(inv.due||"—")+'</span><span>'+esc(x.contact||x.name||"")+'</span></div>'+
+    '<div class="invoice-meta"><span>Due '+esc(fmtDate(inv.due)||"—")+'</span><span>'+esc(x.contact||x.name||"")+'</span></div>'+
     '<div class="invoice-actions">'+
       '<button class="iconbtn" title="Preview" onclick="loadClient('+i+');goPage(\'invoice\')">'+ic("eye")+'</button>'+
       '<button class="iconbtn" title="Download PDF" onclick="downloadInvoicePDF('+i+')">'+ic("download")+'</button>'+
@@ -1101,7 +1101,7 @@ function sendInvoiceWA(i){
   var inv=x.invoice||{items:[]},t=calcInvoiceTotals(inv);
   var n=waNumber(x.phone);
   if(!n){toast("No phone number saved for this client");return;}
-  var msg="Hi "+(x.name||x.contact||"")+"! Here's your invoice "+(inv.number||"")+" for "+money(t.grand)+", due "+(inv.due||"soon")+". Let me know if you have any questions.";
+  var msg="Hi "+(x.name||x.contact||"")+"! Here's your invoice "+(inv.number||"")+" for "+money(t.grand)+", due "+(fmtDate(inv.due)||"soon")+". Let me know if you have any questions.";
   window.open("https://wa.me/"+n+"?text="+encodeURIComponent(msg),"_blank");
 }
 function duplicateInvoice(i){
@@ -1130,7 +1130,7 @@ function pgInvoice(){
   var statusPill=inv.status==="PAID"?'<span class="pill ok"><span class="d"></span>Paid</span>':'<span class="pill warn"><span class="d"></span>Unpaid</span>';
   return '<div class="docwrap">'+
     '<button class="btn ghost sm no-print" style="margin-bottom:10px" onclick="goInvoiceList()">'+ic("chevronLeft")+'Back to Invoices</button>'+
-    '<div class="docbar no-print"><div><div class="h1" style="font-size:22px">Invoice '+esc(inv.number)+'</div><div class="sub" style="margin-top:4px">Issued '+esc(inv.issue)+' · Due '+esc(inv.due)+'</div></div>'+
+    '<div class="docbar no-print"><div><div class="h1" style="font-size:22px">Invoice '+esc(inv.number)+'</div><div class="sub" style="margin-top:4px">Issued '+esc(inv.issue)+' · Due '+esc(fmtDate(inv.due))+'</div></div>'+
       '<div class="docbar-actions">'+
         '<button class="btn sm" onclick="goPage(\'onboard\')">'+ic("gear")+'Edit pricing</button>'+
         '<button class="btn sm" onclick="window.print()">'+ic("print")+'Print</button>'+
@@ -1142,7 +1142,7 @@ function pgInvoice(){
         '<div class="metarow">'+
           '<div class="metablock"><div class="ml">Billed to</div><div class="mv"><b>'+esc(c.company)+'</b><br>'+esc(c.contact)+'<br>'+esc(c.email)+'<br>'+esc(c.phone)+'<br>'+esc(c.address)+'</div></div>'+
           '<div class="metablock" style="text-align:right"><div class="ml">Issue date</div><div class="mv"><b>'+esc(inv.issue)+'</b></div>'+
-            '<div class="ml" style="margin-top:12px">Due date</div><div class="mv"><b>'+esc(inv.due)+'</b></div>'+
+            '<div class="ml" style="margin-top:12px">Due date</div><div class="mv"><b>'+esc(fmtDate(inv.due))+'</b></div>'+
             '<div class="ml" style="margin-top:12px">Status</div><div class="mv" style="margin-top:2px">'+statusPill+'</div></div>'+
         '</div>'+
         '<table class="itable"><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead><tbody>'+rows+'</tbody></table>'+
@@ -1265,7 +1265,7 @@ function pgSettings(){
         setField("s_invstatus","Status (PAID / UNPAID)",inv.status)+
         setField("s_bank","Bank name",inv.bank.bankName)+setField("s_acc","Account number",inv.bank.acc)+
         setField("s_branch","Branch code",inv.bank.branch)+setField("s_vat","VAT %",inv.vat,"number")+
-        setField("s_disc","Discount (R)",inv.discount,"number")+setField("s_due","Due date",inv.due)+
+        setField("s_disc","Discount (R)",inv.discount,"number")+setField("s_due","Due date",inv.due,"date")+
       '</div>'+
       '<div class="cardlabel" style="margin:18px 0 10px">Line items — edit prices here and the invoice updates on save</div>'+
       '<div id="lineItems">'+inv.items.map(lineItemRow).join("")+'</div>'+
