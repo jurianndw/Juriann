@@ -42,7 +42,6 @@ var DEFAULT={
     {name:"Testing",done:false,due:"",desc:"Cross-device QA and performance"},
     {name:"Launch",done:false,due:"",desc:"Go live and handover"}],
   activity:[],
-  messages:[],
   welcomeMsg:"",
   monthly:{enabled:false,price:0,label:"Hosting & Maintenance"},
   clients:[]
@@ -56,7 +55,6 @@ var PAGES=[
   ["onboard","Client Onboarding","sparkle"],
   ["agreement","Service Agreement","file"],
   ["invoice","Invoices","card"],
-  ["messages","Messages","chat"],
   ["clients","Clients","users"],
   ["settings","Settings","gear"]
 ];
@@ -66,7 +64,7 @@ var NAV_GROUPS=[
   ["",           ["dashboard"]],
   ["Clients",    ["onboard","clients"]],
   ["Documents",  ["agreement","invoice"]],
-  ["Workspace",  ["messages","settings"]]
+  ["Workspace",  ["settings"]]
 ];
 
 var ICONS={
@@ -228,12 +226,10 @@ function render(){
   else if(current==="clients")html=pgClients();
   else if(current==="agreement")html=pgAgreement();
   else if(current==="invoice")html=invoiceShowDoc?pgInvoice():pgInvoiceList();
-  else if(current==="messages")html=pgMessages();
   else if(current==="settings")html=pgSettings();
   else if(current==="profile")html=pgProfile();
   s.innerHTML='<div class="page active">'+html+'</div>';
   animateRings();
-  if(current==="messages"){var th=document.querySelector(".thread");if(th)th.scrollTop=th.scrollHeight;}
 }
 
 /* ---------- pages ---------- */
@@ -278,7 +274,6 @@ function pgDashboard(){
 
     '<div class="dash-stats">'+
       dashStat("Invoice",inv.status==="PAID"?"Paid":"Unpaid",money(projectTotal())+" total")+
-      dashStat("Messages",String(db.messages.length),db.messages.length?("Last "+esc(db.messages[db.messages.length-1].time)):"None sent yet")+
     '</div>'+
 
     '<div class="dash-sec">'+
@@ -317,7 +312,6 @@ function quickActionsSec(){
     qaBtn("sparkle","New client","goPage('onboard')")+
     qaBtn("card","Invoices","goInvoiceList()")+
     qaBtn("users","Past Clients","goPage('clients')")+
-    qaBtn("chat","Messages","goPage('messages')")+
   '</div>';
 }
 function qaBtn(icon,label,action){
@@ -1219,23 +1213,6 @@ function markSigned(){
   persist();render();toast("Agreement marked as signed");
 }
 
-function pgMessages(){
-  var body=db.messages.length
-    ?'<div class="thread" id="thread">'+db.messages.map(function(m){
-        return '<div class="msg '+(m.me?"me":"them")+'"><div class="who">'+esc(m.who)+'</div>'+esc(m.text)+'<div class="tm">'+esc(m.time)+'</div></div>';
-      }).join("")+'</div>'
-    :emptyState("chat","No messages yet","Write something below and it'll show up here — this is the outbound log of what you've sent to the currently loaded client.",null,null);
-  return '<div class="pagehead"><div class="h1">Messages</div><div class="sub">Direct line to your project team.</div></div>'+
-    '<div class="card pad">'+body+
-      '<div class="composer"><input id="msgInput" placeholder="Write a message…" onkeydown="if(event.key===\'Enter\')sendMsg()">'+
-        '<button class="btn pri" onclick="sendMsg()">'+ic("upload").replace("width:16px","")+'Send</button></div>'+
-    '</div>';
-}
-function sendMsg(){
-  var i=el("msgInput");if(!i||!i.value.trim())return;
-  db.messages.push({me:true,who:"You",text:i.value.trim(),time:nowTime()});
-  persist();render();
-}
 function nowTime(){return new Date().toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"});}
 
 /* Settings used to be one long scroll of 5 stacked cards -- every field
